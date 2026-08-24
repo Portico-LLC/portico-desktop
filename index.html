@@ -9,6 +9,22 @@
     <title>Portico — Client portal for studios</title>
   </head>
   <body>
+    <script>
+      // Sets the theme attribute before React mounts (and before first paint)
+      // so there is never a flash of the light theme when dark is active —
+      // store/theme.ts's init() re-derives the same value into React state.
+      (function () {
+        try {
+          var stored = localStorage.getItem('portico-theme');
+          var dark =
+            stored === 'dark' ||
+            (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

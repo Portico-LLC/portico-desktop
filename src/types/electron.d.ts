@@ -52,6 +52,12 @@ export interface PorticoBridge {
     get: () => Promise<string>;
     rebind: (accelerator: string) => Promise<ShortcutRebindResult>;
   };
+  theme: {
+    // One-way: lets the main process match native chrome (context menus,
+    // file dialogs) to the renderer's resolved theme. The renderer stores its
+    // own preference itself; this is not a round trip.
+    setNative: (resolved: 'light' | 'dark') => void;
+  };
   recorder: {
     // Only used inside the dedicated /source-picker window (see electron/main.cjs).
     getSources: () => Promise<DesktopCaptureSource[]>;

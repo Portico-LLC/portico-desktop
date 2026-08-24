@@ -1,5 +1,6 @@
 import { NotificationBell } from '@/components/NotificationBell';
 import { ProfileMenu } from '@/components/ProfileMenu';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { BrandMark } from '@/components/brand/BrandMark';
 
 interface TopBarProps {
@@ -27,6 +28,7 @@ export function TopBar({ showNotifications = true, profileHref = '/settings' }: 
     <header className="flex h-14 flex-shrink-0 items-center justify-end gap-2 border-b border-ink-200 bg-bone-50 px-6">
       {showNotifications && <OpenPanelButton />}
       {showNotifications && <NotificationBell />}
+      <ThemeToggle />
       <ProfileMenu profileHref={profileHref} />
     </header>
   );

@@ -124,14 +124,14 @@ export function BrainGraph({ portal = false }: { portal?: boolean }) {
             proOptions={{ hideAttribution: true }}
             defaultEdgeOptions={{ type: 'smoothstep' }}
           >
-            <Background color="#c6c0b0" gap={20} size={1} />
+            <Background color="var(--edge-color)" gap={20} size={1} />
             <Controls showInteractive={false} className="!shadow-md" />
             <MiniMap
               pannable
               zoomable
               className="!bg-bone-50 !border !border-ink-200"
-              nodeColor={() => '#8FBCA6'}
-              maskColor="rgba(28, 27, 23, 0.06)"
+              nodeColor={() => 'var(--pine-300)'}
+              maskColor="var(--minimap-mask)"
             />
           </ReactFlow>
         </ReactFlowProvider>

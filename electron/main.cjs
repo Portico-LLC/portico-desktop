@@ -13,6 +13,7 @@ const {
   session,
   desktopCapturer,
   systemPreferences,
+  nativeTheme,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -575,6 +576,10 @@ function registerIpcHandlers() {
   // recording, on Windows 10 2004+ and macOS.
   ipcMain.on('recorder:set-content-protection', (_e, enabled) => {
     panelWindow?.setContentProtection(!!enabled);
+  });
+
+  ipcMain.on('theme:set-native', (_e, resolved) => {
+    if (resolved === 'light' || resolved === 'dark') nativeTheme.themeSource = resolved;
   });
 
   ipcMain.handle('prefs:get', () => panelPrefs);

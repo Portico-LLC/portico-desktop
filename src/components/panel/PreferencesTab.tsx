@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react';
 import { usePanelPrefsStore } from '@/store/panelPrefs';
+import { useThemeStore, type ThemePreference } from '@/store/theme';
 import { Slider } from '@/components/ui/Slider';
 import { Switch } from '@/components/ui/Switch';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { cn } from '@/lib/utils';
 import type { PanelPrefs } from '@/types/electron';
+
+const THEME_OPTIONS: { id: ThemePreference; label: string }[] = [
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+  { id: 'system', label: 'System' },
+];
 
 const BLUR_OPTIONS: { id: PanelPrefs['blurMode']; label: string }[] = [
   { id: 'off', label: 'Off' },
@@ -51,37 +59,11 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-ink-400">{children}</p>;
 }
 
-function SegmentedControl<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { id: T; label: string }[];
-  value: T;
-  onChange: (id: T) => void;
-}) {
-  return (
-    <div className="flex gap-1 rounded-sm bg-ink-100 p-0.5">
-      {options.map((opt) => (
-        <button
-          key={opt.id}
-          type="button"
-          onClick={() => onChange(opt.id)}
-          className={cn(
-            'flex-1 rounded-sm px-2 py-1.5 text-xs font-medium transition-colors duration-hover ease-brand',
-            value === opt.id ? 'bg-bone-50 text-ink-900 shadow-xs' : 'text-ink-500 hover:text-ink-700'
-          )}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export function PreferencesTab() {
   const prefs = usePanelPrefsStore((s) => s.prefs);
   const setPref = usePanelPrefsStore((s) => s.setPref);
+  const themePreference = useThemeStore((s) => s.preference);
+  const setThemePreference = useThemeStore((s) => s.setPreference);
   const [recording, setRecording] = useState(false);
   const [shortcutError, setShortcutError] = useState<string | null>(null);
 
@@ -108,6 +90,11 @@ export function PreferencesTab() {
 
   return (
     <div className="space-y-5 p-3">
+      <div>
+        <SectionLabel>Theme</SectionLabel>
+        <SegmentedControl options={THEME_OPTIONS} value={themePreference} onChange={setThemePreference} />
+      </div>
+
       <div>
         <div className="mb-2 flex items-center justify-between">
           <SectionLabel>Opacity</SectionLabel>

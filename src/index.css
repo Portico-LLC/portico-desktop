@@ -61,12 +61,231 @@
   --duration-transition: 200ms;
   --ease-brand: cubic-bezier(0.2, 0, 0, 1);
 
+  /* Raw palette steps, light mode — literal values from tailwind.config.js.
+     Every bg-pine-500 / text-ink-900 / border-terracotta-400 utility class in
+     the app resolves through these variables, which is what lets the whole UI
+     re-theme under [data-theme="dark"] below without touching component code. */
+  --pine-50: #F0F5F2;
+  --pine-100: #DCECE3;
+  --pine-200: #BBD8C9;
+  --pine-300: #8FBCA6;
+  --pine-400: #5E9C82;
+  --pine-500: #3C7D63;
+  --pine-600: #2C6350;
+  --pine-700: #24503F;
+  --pine-800: #1E4134;
+  --pine-900: #183429;
+  --pine-950: #0E211A;
+
+  --brass-50: #FAF4EA;
+  --brass-100: #F3E5CC;
+  --brass-200: #E6CB99;
+  --brass-300: #D9B06A;
+  --brass-400: #CB9447;
+  --brass-500: #B77B33;
+  --brass-600: #9C6226;
+  --brass-700: #7E4D1F;
+  --brass-800: #5F3B1B;
+  --brass-900: #462C17;
+
+  --ink-50: #F7F6F3;
+  --ink-100: #EFEDE7;
+  --ink-200: #E2DFD5;
+  --ink-300: #CFCBBE;
+  --ink-400: #A9A496;
+  --ink-500: #837E70;
+  --ink-600: #5E5A4F;
+  --ink-700: #423F37;
+  --ink-800: #2B2924;
+  --ink-900: #1B1A16;
+  --ink-950: #12110E;
+
+  --bone-50: #F6F4EF;
+  --bone-100: #FCFBF8;
+  --bone-150: #FAF9F6;
+  --bone-200: #EFECE3;
+
+  --moss-100: #E9EFDF;
+  --moss-200: #D4E0C0;
+  --moss-400: #9DB87C;
+  --moss-500: #6C8A4F;
+  --moss-600: #557040;
+  --moss-700: #425732;
+
+  --ochre-100: #F7EBD6;
+  --ochre-200: #EFD7AC;
+  --ochre-400: #D9A860;
+  --ochre-500: #A86E1D;
+  --ochre-600: #8B5A16;
+  --ochre-700: #6D4711;
+
+  --terracotta-100: #F7E4DC;
+  --terracotta-200: #EFCABB;
+  --terracotta-300: #E2A78F;
+  --terracotta-400: #D0805F;
+  --terracotta-500: #B4543A;
+  --terracotta-600: #9C4530;
+  --terracotta-700: #7B3626;
+
+  --steel-100: #E7EDF1;
+  --steel-200: #CDD9E1;
+  --steel-400: #86A0B4;
+  --steel-500: #547085;
+  --steel-600: #405165;
+  --steel-700: #33404F;
+
+  /* Canvas/graph colors (React Flow's Background/MiniMap/edge props take a
+     plain color string, not a Tailwind class) — composed from the palette
+     above so they re-theme along with everything else. */
+  --edge-color: var(--ink-300);
+  --minimap-mask: rgb(28 27 23 / 0.06);
+
+  /* "Chrome" — the always-dark sidebar/title-bar band (Sidebar.tsx,
+     ClientSidebar.tsx, MainTitleBar.tsx). This is a fixed dark accent that
+     frames the (themed) content area in BOTH light and dark app themes, the
+     same way it already does today — it intentionally does NOT get
+     redefined under [data-theme="dark"]. Values match the light-mode
+     ink-950/900/800/700/300/400/500, bone-50, pine-800, brass-500, and
+     terracotta-500 steps above, frozen at their light-mode hex so this
+     component's internal contrast never depends on which values those
+     reactive steps currently hold. */
+  --chrome-bg: #12110e;
+  --chrome-surface: #1b1a16;
+  --chrome-border: #2b2924;
+  --chrome-border-soft: #423f37;
+  --chrome-text: #f6f4ef;
+  --chrome-text-muted: #cfcbbe;
+  --chrome-text-faint: #a9a496;
+  --chrome-text-faint-2: #837e70;
+  --chrome-active-bg: #1e4134;
+  --chrome-accent: #b77b33;
+  --chrome-danger: #b4543a;
+  --chrome-danger-hover: #d0805f;
+  --chrome-border-highlight: #e2dfd5;
+
   color-scheme: light;
   font-family: var(--font-sans);
 }
 
 .has-electron-titlebar {
   --app-titlebar-height: 36px;
+}
+
+/* Dark mode. Every palette step above is redefined here — same variable
+   names, same functional role (soft wash / mid solid / bold text-on-tint),
+   redesigned lightness+saturation for a dark canvas — plus the semantic
+   tokens get their own dark values so background/surface elevation and
+   shadow weight are deliberate rather than an automatic invert. Toggled by
+   store/theme.ts setting document.documentElement.dataset.theme = 'dark'. */
+[data-theme='dark'] {
+  --bg: hsl(40, 10%, 8%);
+  --surface: hsl(38, 9%, 15%);
+  --surface-muted: hsl(37, 8%, 11%);
+  --surface-strong: hsl(36, 8%, 19%);
+  --border: hsl(35, 9%, 22%);
+  --border-strong: hsl(34, 10%, 30%);
+  --text-primary: hsl(45, 13%, 94%);
+  --text-secondary: hsl(41, 9%, 76%);
+  --text-muted: hsl(41, 7%, 56%);
+  --text-faint: hsl(39, 6%, 42%);
+  --text-disabled: hsl(37, 6%, 32%);
+
+  --brand: hsl(155, 30%, 46%);
+  --brand-hover: hsl(155, 34%, 54%);
+  --brand-active: hsl(155, 38%, 60%);
+  --brand-soft: hsl(152, 20%, 14%);
+  --accent: hsl(35, 55%, 58%);
+  --accent-soft: hsl(31, 26%, 15%);
+
+  --success: hsl(91, 36%, 55%);
+  --success-soft: hsl(88, 20%, 15%);
+  --warning: hsl(37, 62%, 58%);
+  --warning-soft: hsl(34, 40%, 16%);
+  --danger: hsl(14, 58%, 60%);
+  --danger-soft: hsl(10, 35%, 18%);
+  --info: hsl(205, 30%, 56%);
+  --info-soft: hsl(202, 18%, 17%);
+  --focus: hsl(38, 66%, 62%);
+
+  /* Shadows barely read against a dark canvas — lean on opacity over spread,
+     and pair with the stronger --border/--border-strong above for edges. */
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35), 0 2px 8px rgb(0 0 0 / 0.25);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.55);
+
+  --pine-50: hsl(150, 18%, 10%);
+  --pine-100: hsl(152, 20%, 14%);
+  --pine-200: hsl(153, 22%, 19%);
+  --pine-300: hsl(154, 24%, 28%);
+  --pine-400: hsl(155, 28%, 40%);
+  --pine-500: hsl(156, 34%, 50%);
+  --pine-600: hsl(157, 38%, 58%);
+  --pine-700: hsl(158, 42%, 66%);
+  --pine-800: hsl(159, 46%, 74%);
+  --pine-900: hsl(160, 48%, 80%);
+  --pine-950: hsl(162, 50%, 86%);
+
+  --brass-50: hsl(30, 22%, 11%);
+  --brass-100: hsl(31, 26%, 15%);
+  --brass-200: hsl(32, 30%, 21%);
+  --brass-300: hsl(33, 36%, 32%);
+  --brass-400: hsl(34, 45%, 45%);
+  --brass-500: hsl(35, 55%, 55%);
+  --brass-600: hsl(36, 60%, 63%);
+  --brass-700: hsl(37, 65%, 71%);
+  --brass-800: hsl(38, 68%, 78%);
+  --brass-900: hsl(39, 70%, 84%);
+
+  --ink-50: hsl(35, 14%, 13%);
+  --ink-100: hsl(35, 12%, 17%);
+  --ink-200: hsl(36, 10%, 23%);
+  --ink-300: hsl(37, 9%, 31%);
+  --ink-400: hsl(39, 8%, 45%);
+  --ink-500: hsl(41, 7%, 58%);
+  --ink-600: hsl(42, 8%, 69%);
+  --ink-700: hsl(43, 9%, 79%);
+  --ink-800: hsl(44, 10%, 88%);
+  --ink-900: hsl(45, 13%, 94%);
+  --ink-950: hsl(46, 16%, 97%);
+
+  --bone-50: hsl(40, 10%, 8%);
+  --bone-100: hsl(38, 9%, 15%);
+  --bone-150: hsl(38, 9%, 13%);
+  --bone-200: hsl(37, 8%, 11%);
+
+  --moss-100: hsl(88, 20%, 15%);
+  --moss-200: hsl(89, 24%, 20%);
+  --moss-400: hsl(90, 34%, 52%);
+  --moss-500: hsl(91, 38%, 58%);
+  --moss-600: hsl(92, 42%, 66%);
+  --moss-700: hsl(93, 46%, 74%);
+
+  --ochre-100: hsl(34, 40%, 16%);
+  --ochre-200: hsl(35, 45%, 22%);
+  --ochre-400: hsl(36, 55%, 48%);
+  --ochre-500: hsl(37, 62%, 58%);
+  --ochre-600: hsl(38, 66%, 66%);
+  --ochre-700: hsl(39, 70%, 74%);
+
+  --terracotta-100: hsl(10, 35%, 18%);
+  --terracotta-200: hsl(11, 40%, 25%);
+  --terracotta-300: hsl(12, 44%, 34%);
+  --terracotta-400: hsl(13, 55%, 58%);
+  --terracotta-500: hsl(14, 60%, 62%);
+  --terracotta-600: hsl(15, 64%, 68%);
+  --terracotta-700: hsl(16, 68%, 75%);
+
+  --steel-100: hsl(202, 18%, 17%);
+  --steel-200: hsl(203, 20%, 23%);
+  --steel-400: hsl(204, 26%, 48%);
+  --steel-500: hsl(205, 32%, 58%);
+  --steel-600: hsl(206, 36%, 66%);
+  --steel-700: hsl(207, 40%, 74%);
+
+  --minimap-mask: rgb(0 0 0 / 0.35);
+
+  color-scheme: dark;
 }
 
 @media (prefers-reduced-motion: reduce) {

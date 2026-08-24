@@ -22,7 +22,7 @@ function useIsMaximized(): boolean {
 }
 
 const controlButtonClass =
-  'flex h-9 w-11 items-center justify-center text-ink-400 transition-colors duration-hover ease-brand hover:bg-ink-800 hover:text-bone-50';
+  'flex h-9 w-11 items-center justify-center text-[var(--chrome-text-faint)] transition-colors duration-hover ease-brand hover:bg-[var(--chrome-border)] hover:text-[var(--chrome-text)]';
 
 export function MainTitleBar() {
   const isMaximized = useIsMaximized();
@@ -30,13 +30,13 @@ export function MainTitleBar() {
 
   return (
     <div
-      className={cn('flex h-9 flex-shrink-0 items-center justify-between bg-ink-950', isMac && 'pl-20')}
+      className={cn('flex h-9 flex-shrink-0 items-center justify-between bg-[var(--chrome-bg)]', isMac && 'pl-20')}
       style={dragStyle}
       onDoubleClick={() => !isMac && window.portico?.window.maximizeToggle()}
     >
       <div className="flex items-center gap-2 px-3" style={noDragStyle}>
         <BrandMark size={16} tone="bone" />
-        <span className="font-display text-[13px] font-medium tracking-tight text-bone-50">Portico</span>
+        <span className="font-display text-[13px] font-medium tracking-tight text-[var(--chrome-text)]">Portico</span>
       </div>
 
       {!isMac && (
@@ -64,7 +64,7 @@ export function MainTitleBar() {
             title="Close"
             aria-label="Close"
             onClick={() => window.portico?.window.close()}
-            className={cn(controlButtonClass, 'hover:bg-terracotta-500 hover:text-bone-50')}
+            className={cn(controlButtonClass, 'hover:bg-[var(--chrome-danger)] hover:text-[var(--chrome-text)]')}
           >
             <X size={15} />
           </button>

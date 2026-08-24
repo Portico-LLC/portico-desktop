@@ -66,7 +66,7 @@ export function NotificationBell({ variant = 'default' }: { variant?: 'default' 
         className={cn(
           'relative flex items-center justify-center rounded-sm transition-all duration-hover ease-brand',
           isPanel
-            ? 'h-7 w-7 text-ink-400 hover:bg-ink-800 hover:text-bone-100 active:scale-95 active:duration-press'
+            ? 'h-7 w-7 text-[var(--chrome-text-faint)] hover:bg-[var(--chrome-border)] hover:text-[var(--chrome-text)] active:scale-95 active:duration-press'
             : 'h-9 w-9 text-ink-500 hover:bg-ink-100 hover:text-ink-800'
         )}
         title="Notifications"

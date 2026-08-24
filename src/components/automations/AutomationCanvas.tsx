@@ -23,7 +23,7 @@ import { NODE_STYLES } from './automationNodeStyles';
 import type { WorkflowNodeConfig, WorkflowEdgeConfig, WorkflowNodeType } from '@/lib/types';
 
 const nodeTypes = { automationNode: AutomationFlowNode };
-const EDGE_STYLE = { stroke: '#c6c0b0', strokeWidth: 1.5 };
+const EDGE_STYLE = { stroke: 'var(--edge-color)', strokeWidth: 1.5 };
 
 function branchLabel(sourceHandle: string | null | undefined): string | undefined {
   if (sourceHandle === 'true') return 'Yes';
@@ -239,9 +239,9 @@ function AutomationCanvasInner({ onSelectNode }: { onSelectNode: (nodeId: string
           defaultEdgeOptions={{ type: 'smoothstep' }}
           minZoom={0.2}
         >
-          <Background color="#c6c0b0" gap={20} size={1} />
+          <Background color="var(--edge-color)" gap={20} size={1} />
           <Controls showInteractive={false} className="!shadow-md" />
-          <MiniMap pannable zoomable className="!border !border-ink-200 !bg-bone-50" nodeColor={() => '#8FBCA6'} maskColor="rgba(28, 27, 23, 0.06)" />
+          <MiniMap pannable zoomable className="!border !border-ink-200 !bg-bone-50" nodeColor={() => 'var(--pine-300)'} maskColor="var(--minimap-mask)" />
         </ReactFlow>
         {nodes.length === 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

@@ -33,12 +33,12 @@ export function PanelHeader({
 }) {
   return (
     <div
-      className="flex flex-shrink-0 items-center justify-between border-b border-ink-200 bg-ink-950 px-3 py-2.5"
+      className="flex flex-shrink-0 items-center justify-between border-b border-[var(--chrome-border-highlight)] bg-[var(--chrome-bg)] px-3 py-2.5"
       style={dragStyle}
     >
       <div className="flex items-center gap-2" style={noDragStyle}>
         <BrandMark size={20} tone="bone" />
-        <span className="font-display text-sm font-medium text-bone-50">Portico</span>
+        <span className="font-display text-sm font-medium text-[var(--chrome-text)]">Portico</span>
       </div>
 
       <div className="relative flex items-center gap-0.5" style={noDragStyle}>
@@ -49,7 +49,7 @@ export function PanelHeader({
         <motion.div
           animate={{ x: TABS.findIndex((t) => t.id === activeTab) * 30 }}
           transition={springs.snappy}
-          className="pointer-events-none absolute left-0 top-0 h-7 w-7 rounded-sm bg-pine-800"
+          className="pointer-events-none absolute left-0 top-0 h-7 w-7 rounded-sm bg-[var(--chrome-active-bg)]"
         />
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
@@ -60,7 +60,9 @@ export function PanelHeader({
             onClick={() => onTabChange(id)}
             className={cn(
               'relative flex h-7 w-7 items-center justify-center rounded-sm transition-[color,transform] duration-hover ease-brand active:scale-95 active:duration-press',
-              activeTab === id ? 'text-bone-50' : 'text-ink-400 hover:bg-ink-800 hover:text-bone-100'
+              activeTab === id
+                ? 'text-[var(--chrome-text)]'
+                : 'text-[var(--chrome-text-faint)] hover:bg-[var(--chrome-border)] hover:text-[var(--chrome-text)]'
             )}
           >
             <Icon size={14} />
@@ -72,7 +74,7 @@ export function PanelHeader({
           title="Hide panel"
           aria-label="Hide panel"
           onClick={() => window.portico?.panel.hide()}
-          className="ml-1 flex h-7 w-7 items-center justify-center rounded-sm text-ink-400 transition-[color,transform] duration-hover ease-brand hover:bg-ink-800 hover:text-bone-100 active:scale-95 active:duration-press"
+          className="ml-1 flex h-7 w-7 items-center justify-center rounded-sm text-[var(--chrome-text-faint)] transition-[color,transform] duration-hover ease-brand hover:bg-[var(--chrome-border)] hover:text-[var(--chrome-text)] active:scale-95 active:duration-press"
         >
           <Minus size={14} />
         </button>

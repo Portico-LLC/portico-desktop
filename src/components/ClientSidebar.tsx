@@ -54,14 +54,14 @@ export function ClientSidebar() {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-[var(--app-titlebar-height)] h-[calc(100vh-var(--app-titlebar-height))] bg-ink-950 text-bone-50 border-r border-ink-800 transition-all duration-transition ease-brand flex flex-col z-40',
+        'fixed left-0 top-[var(--app-titlebar-height)] h-[calc(100vh-var(--app-titlebar-height))] bg-[var(--chrome-bg)] text-[var(--chrome-text)] border-r border-[var(--chrome-border)] transition-all duration-transition ease-brand flex flex-col z-40',
         isCollapsed ? 'w-16' : 'w-60'
       )}
     >
       {/* Brand */}
       <div
         className={cn(
-          'h-16 flex items-center border-b border-ink-800',
+          'h-16 flex items-center border-b border-[var(--chrome-border)]',
           isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
         )}
       >
@@ -69,10 +69,10 @@ export function ClientSidebar() {
           <BrandMark size={36} tone="bone" className="flex-shrink-0" />
           {!isCollapsed && (
             <div className="flex flex-col min-w-0">
-              <span className="font-display text-lg font-medium leading-none tracking-tight text-bone-50 truncate">
+              <span className="font-display text-lg font-medium leading-none tracking-tight text-[var(--chrome-text)] truncate">
                 Portico
               </span>
-              <span className="text-[10px] text-ink-400 mt-0.5 uppercase tracking-wider">
+              <span className="text-[10px] text-[var(--chrome-text-faint)] mt-0.5 uppercase tracking-wider">
                 Client Portal
               </span>
             </div>
@@ -81,7 +81,7 @@ export function ClientSidebar() {
         {!isCollapsed && (
           <button
             onClick={toggleCollapsed}
-            className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-sm text-ink-400 hover:text-bone-50 hover:bg-ink-800 transition-all duration-hover ease-brand"
+            className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-sm text-[var(--chrome-text-faint)] hover:text-[var(--chrome-text)] hover:bg-[var(--chrome-border)] transition-all duration-hover ease-brand"
             title="Collapse sidebar"
           >
             <ChevronLeft size={16} />
@@ -91,10 +91,10 @@ export function ClientSidebar() {
 
       {/* Expand toggle when collapsed */}
       {isCollapsed && (
-        <div className="flex justify-center py-2 border-b border-ink-800">
+        <div className="flex justify-center py-2 border-b border-[var(--chrome-border)]">
           <button
             onClick={toggleCollapsed}
-            className="flex items-center justify-center w-10 h-8 rounded-sm text-ink-400 hover:text-bone-50 hover:bg-ink-800 transition-all duration-hover ease-brand"
+            className="flex items-center justify-center w-10 h-8 rounded-sm text-[var(--chrome-text-faint)] hover:text-[var(--chrome-text)] hover:bg-[var(--chrome-border)] transition-all duration-hover ease-brand"
             title="Expand sidebar"
           >
             <ChevronRight size={16} />
@@ -108,7 +108,7 @@ export function ClientSidebar() {
           onClick={() => openCommandPalette(true)}
           title="Search (⌘K)"
           className={cn(
-            'flex items-center gap-2 rounded-sm text-sm text-ink-400 transition-all duration-hover ease-brand hover:bg-ink-800 hover:text-bone-50',
+            'flex items-center gap-2 rounded-sm text-sm text-[var(--chrome-text-faint)] transition-all duration-hover ease-brand hover:bg-[var(--chrome-border)] hover:text-[var(--chrome-text)]',
             isCollapsed ? 'h-9 w-10 justify-center' : 'w-full px-3 py-2'
           )}
         >
@@ -116,7 +116,7 @@ export function ClientSidebar() {
           {!isCollapsed && (
             <>
               <span className="flex-1 text-left">Search</span>
-              <kbd className="rounded-sm border border-ink-700 bg-ink-900 px-1.5 py-0.5 text-[10px] font-medium text-ink-400">
+              <kbd className="rounded-sm border border-[var(--chrome-border-soft)] bg-[var(--chrome-surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--chrome-text-faint)]">
                 ⌘K
               </kbd>
             </>
@@ -133,11 +133,11 @@ export function ClientSidebar() {
               key={item.href}
               to={item.href}
               className={cn(
-                'group relative flex items-center gap-3 rounded-sm text-sm font-medium transition-all duration-hover ease-brand before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-brass-500 before:transition-opacity before:duration-hover before:ease-brand',
+                'group relative flex items-center gap-3 rounded-sm text-sm font-medium transition-all duration-hover ease-brand before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-[var(--chrome-accent)] before:transition-opacity before:duration-hover before:ease-brand',
                 isCollapsed ? 'justify-center px-0 py-2.5 mx-1' : 'px-3 py-2.5',
                 active
-                  ? 'bg-pine-800 text-bone-50 before:opacity-100'
-                  : 'text-ink-300 hover:bg-ink-800 hover:text-bone-50 before:opacity-0 hover:before:opacity-50'
+                  ? 'bg-[var(--chrome-active-bg)] text-[var(--chrome-text)] before:opacity-100'
+                  : 'text-[var(--chrome-text-muted)] hover:bg-[var(--chrome-border)] hover:text-[var(--chrome-text)] before:opacity-0 hover:before:opacity-50'
               )}
             >
               <span className="transition-transform duration-hover ease-brand group-hover:translate-x-0.5">
@@ -150,14 +150,14 @@ export function ClientSidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="px-2 pt-4 pb-2 border-t border-ink-800">
+      <div className="px-2 pt-4 pb-2 border-t border-[var(--chrome-border)]">
         <button
           onClick={handleLogout}
           title="Log out"
           className={cn(
             'group flex items-center gap-3 rounded-sm text-sm font-medium transition-all duration-hover ease-brand w-full',
             isCollapsed ? 'justify-center px-0 py-2.5 mx-1' : 'px-3 py-2.5',
-            'text-terracotta-500 hover:bg-terracotta-500/10 hover:text-terracotta-400'
+            'text-[var(--chrome-danger)] hover:bg-[var(--chrome-danger)]/10 hover:text-[var(--chrome-danger-hover)]'
           )}
         >
           <span className="transition-transform duration-hover ease-brand group-hover:translate-x-0.5">

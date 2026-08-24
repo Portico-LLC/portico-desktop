@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.tsx'
 import { useAuthStore } from '@/store/auth'
+import { useThemeStore } from '@/store/theme'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,6 +18,7 @@ const queryClient = new QueryClient({
 function Root() {
   // Hydrate auth from localStorage on initial render
   useAuthStore.getState().hydrate()
+  useThemeStore.getState().init()
 
   return (
     <StrictMode>

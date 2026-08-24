@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
+import { useForceLightTheme } from '@/hooks/useForceLightTheme';
 
 export function ElectronAuthLayout({ children }: { children: ReactNode }) {
+  useForceLightTheme();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const role = useAuthStore((s) => s.role);
 

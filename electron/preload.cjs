@@ -42,6 +42,9 @@ contextBridge.exposeInMainWorld('portico', {
     get: () => ipcRenderer.invoke('shortcut:get'),
     rebind: (accelerator) => ipcRenderer.invoke('shortcut:rebind', accelerator),
   },
+  theme: {
+    setNative: (resolved) => ipcRenderer.send('theme:set-native', resolved),
+  },
   recorder: {
     getSources: () => ipcRenderer.invoke('recorder:get-sources'),
     chooseSource: (sourceId) => ipcRenderer.send('recorder:choose-source', sourceId),

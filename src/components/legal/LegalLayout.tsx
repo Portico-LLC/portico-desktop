@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '@/components/brand/Logo';
 import { ArrowLeft } from 'lucide-react';
+import { useForceLightTheme } from '@/hooks/useForceLightTheme';
 
 interface LegalLayoutProps {
   title: string;
@@ -10,6 +11,8 @@ interface LegalLayoutProps {
 }
 
 export function LegalLayout({ title, effectiveDate, children }: LegalLayoutProps) {
+  useForceLightTheme();
+
   return (
     <div className="min-h-screen bg-bone-50">
       <header className="border-b border-ink-200 bg-bone-50/95 backdrop-blur">

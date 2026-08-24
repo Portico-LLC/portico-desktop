@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Camera, Loader2, AlertCircle, Check } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { useThemeStore, type ThemePreference } from '@/store/theme';
 import { api, getErrorMessage } from '@/lib/api';
 import type { Employee } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -13,7 +14,14 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Avatar } from '@/components/ui/Avatar';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { PasswordChangeCard } from '@/components/settings/PasswordChangeCard';
+
+const THEME_OPTIONS: { id: ThemePreference; label: string }[] = [
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+  { id: 'system', label: 'System' },
+];
 
 const profileSchema = z.object({
   firstName: z.string().min(2, 'First name is required'),
@@ -29,6 +37,8 @@ export function Settings() {
   const isOwner = role === 'user';
   const updateProfile = useAuthStore((s) => s.updateProfile);
   const uploadAvatar = useAuthStore((s) => s.uploadAvatar);
+  const themePreference = useThemeStore((s) => s.preference);
+  const setThemePreference = useThemeStore((s) => s.setPreference);
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'],
@@ -182,6 +192,28 @@ export function Settings() {
                 can update your photo above.
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-6">
+              <div>
+                <p className="text-sm font-medium text-ink-900">Theme</p>
+                <p className="text-xs text-ink-400">
+                  "System" follows your OS setting and switches automatically if it changes.
+                </p>
+              </div>
+              <SegmentedControl
+                options={THEME_OPTIONS}
+                value={themePreference}
+                onChange={setThemePreference}
+                className="w-56 flex-shrink-0"
+              />
+            </div>
           </CardContent>
         </Card>
 

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/auth';
 import { Logo } from '@/components/brand/Logo';
 import { AuthBrandPanel } from '@/components/auth/AuthBrandPanel';
 import { Check } from 'lucide-react';
+import { useForceLightTheme } from '@/hooks/useForceLightTheme';
 
 const FEATURES = [
   'Invite clients into a private, branded portal',
@@ -14,6 +15,7 @@ const FEATURES = [
 ];
 
 export function AuthLayout({ children }: { children: ReactNode }) {
+  useForceLightTheme();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const role = useAuthStore((s) => s.role);
 
