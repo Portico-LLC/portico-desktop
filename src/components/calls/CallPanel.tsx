@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { cn } from '@/lib/utils';
 import { useCallAudioStream, type CallTrack } from '@/hooks/useCallAudioStream';
-import type { Call, CallSpeaker, CallPlatform } from '@/lib/types';
+import type { Call, CallSpeaker, CallPlatform, CallTranscriptChunk } from '@/lib/types';
 
 interface BotAction {
   responseText: string;
@@ -372,14 +372,23 @@ function CallHistoryList({ calls, isLoading }: { calls: Call[]; isLoading: boole
 function CallHistoryRow({ call }: { call: Call }) {
   const [expanded, setExpanded] = useState(false);
   const badge = STATUS_BADGE[call.status];
-  const canExpand = !!call.summary;
+
+  // Desktop calls' transcript lives as CallTranscriptChunk rows, not on the
+  // Call itself — fetch it lazily, only once this row is actually opened,
+  // rather than pulling every past call's full transcript up front.
+  const transcriptQuery = useQuery({
+    queryKey: ['call-transcript', call.id],
+    queryFn: () => api.get<CallTranscriptChunk[]>(`/calls/${call.id}/transcript`).then((res) => res.data),
+    enabled: expanded && call.platform === 'desktop',
+    staleTime: Infinity, // a past call's transcript never changes once it's ended
+  });
 
   return (
     <div className="rounded-md border border-ink-200 bg-bone-50">
       <button
         type="button"
-        onClick={() => canExpand && setExpanded((v) => !v)}
-        className={cn('flex w-full items-center justify-between gap-2 px-3 py-2 text-left', canExpand && 'cursor-pointer')}
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left"
       >
         <div className="min-w-0">
           <p className="truncate text-xs font-medium text-ink-900">{PLATFORM_LABELS[call.platform]}</p>
@@ -387,11 +396,47 @@ function CallHistoryRow({ call }: { call: Call }) {
         </div>
         <div className="flex flex-shrink-0 items-center gap-1.5">
           <Badge variant={badge.variant}>{badge.label}</Badge>
-          {canExpand && (expanded ? <ChevronUp size={14} className="text-ink-400" /> : <ChevronDown size={14} className="text-ink-400" />)}
+          {expanded ? <ChevronUp size={14} className="text-ink-400" /> : <ChevronDown size={14} className="text-ink-400" />}
         </div>
       </button>
-      {expanded && call.summary && (
-        <p className="border-t border-ink-100 px-3 py-2 text-xs text-ink-600">{call.summary}</p>
+
+      {expanded && (
+        <div className="space-y-2 border-t border-ink-100 px-3 py-2.5">
+          {call.summary && (
+            <div>
+              <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-400">Summary</p>
+              <p className="text-xs text-ink-600">{call.summary}</p>
+            </div>
+          )}
+
+          <div>
+            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-400">Transcript</p>
+            {call.platform === 'desktop' ? (
+              transcriptQuery.isLoading ? (
+                <p className="text-xs text-ink-400">Loading…</p>
+              ) : transcriptQuery.data?.length ? (
+                <div className="max-h-64 space-y-1.5 overflow-y-auto">
+                  {transcriptQuery.data.map((chunk) => (
+                    <p key={chunk.id} className="text-xs text-ink-600">
+                      <span className="font-medium text-ink-800">{chunk.speaker === 'employee' ? 'You' : 'Client'}:</span>{' '}
+                      {chunk.text}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-ink-400">No transcript available.</p>
+              )
+            ) : call.externalTranscriptText ? (
+              <p className="max-h-64 overflow-y-auto whitespace-pre-line text-xs text-ink-600">
+                {call.externalTranscriptText}
+              </p>
+            ) : (
+              <p className="text-xs text-ink-400">
+                {call.status === 'failed' ? 'This call failed before a transcript was produced.' : 'No transcript available yet.'}
+              </p>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

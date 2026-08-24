@@ -220,6 +220,7 @@ export interface Call {
   platform: CallPlatform;
   externalMeetingUrl?: string;
   summary?: string;
+  externalTranscriptText?: string;
   startedAt?: string;
   endedAt?: string;
   durationSeconds?: number;
