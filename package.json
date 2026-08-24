@@ -17,8 +17,7 @@
     "appId": "com.portico.app",
     "productName": "Portico",
     "directories": {
-      "output": "release",
-      "buildResources": "buildResources"
+      "output": "release"
     },
     "files": [
       "dist/**/*",
