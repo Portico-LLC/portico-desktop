@@ -7,7 +7,7 @@ export interface PanelPrefs {
   position: { x: number; y: number } | null;
   alwaysOnTop: boolean;
   shortcut: string;
-  activeTab: 'tasks' | 'calendar' | 'messages' | 'projects' | 'vault' | 'preferences' | 'record';
+  activeTab: 'tasks' | 'calendar' | 'messages' | 'projects' | 'vault' | 'preferences' | 'record' | 'calls';
   notificationsMuted: boolean;
 }
 

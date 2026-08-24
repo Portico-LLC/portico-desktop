@@ -208,6 +208,36 @@ export interface Project {
   createdAt: string;
 }
 
+export type CallStatus = 'pending' | 'active' | 'ended' | 'failed';
+export type CallSpeaker = 'employee' | 'client';
+export type CallPlatform = 'desktop' | 'google_meet' | 'zoom' | 'microsoft_teams';
+
+export interface Call {
+  id: string;
+  projectId?: string;
+  clientId?: string;
+  status: CallStatus;
+  platform: CallPlatform;
+  externalMeetingUrl?: string;
+  summary?: string;
+  startedAt?: string;
+  endedAt?: string;
+  durationSeconds?: number;
+  createdAt: string;
+}
+
+export interface CallTranscriptChunk {
+  id: string;
+  callId: string;
+  speaker: CallSpeaker;
+  text: string;
+  startedAtMs: number;
+  endedAtMs: number;
+  botActionSummary?: string;
+  botActionTaskId?: string;
+  createdAt: string;
+}
+
 export interface ProjectTemplateTask {
   id: string;
   templateId: string;

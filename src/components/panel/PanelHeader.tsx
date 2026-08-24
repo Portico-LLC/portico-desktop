@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { motion } from 'framer-motion';
-import { ListChecks, Calendar, MessageSquare, FolderKanban, Shield, Video, Settings2, Minus } from 'lucide-react';
+import { ListChecks, Calendar, MessageSquare, FolderKanban, Shield, Video, Phone, Settings2, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/brand/BrandMark';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -19,6 +19,7 @@ const TABS: { id: PanelTab; label: string; icon: typeof ListChecks }[] = [
   { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
   { id: 'projects', label: 'Projects', icon: FolderKanban },
+  { id: 'calls', label: 'Calls', icon: Phone },
   { id: 'vault', label: 'Vault', icon: Shield },
   { id: 'record', label: 'Record', icon: Video },
   { id: 'preferences', label: 'Preferences', icon: Settings2 },

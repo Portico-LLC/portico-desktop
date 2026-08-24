@@ -5,6 +5,7 @@ import { TasksTab } from '@/components/panel/TasksTab';
 import { CalendarTab } from '@/components/panel/CalendarTab';
 import { MessagesTab } from '@/components/panel/MessagesTab';
 import { ProjectsTab } from '@/components/panel/ProjectsTab';
+import { CallTab } from '@/components/panel/CallTab';
 import { VaultTab } from '@/components/panel/VaultTab';
 import { RecordTab } from '@/components/panel/RecordTab';
 import { PreferencesTab } from '@/components/panel/PreferencesTab';
@@ -51,6 +52,7 @@ export function PanelShell() {
             {activeTab === 'calendar' && <CalendarTab />}
             {activeTab === 'messages' && <MessagesTab />}
             {activeTab === 'projects' && <ProjectsTab />}
+            {activeTab === 'calls' && <CallTab />}
             {activeTab === 'vault' && <VaultTab />}
             {activeTab === 'record' && <RecordTab />}
             {activeTab === 'preferences' && <PreferencesTab />}
