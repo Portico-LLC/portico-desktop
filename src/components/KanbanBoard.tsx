@@ -23,7 +23,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Task } from '@/lib/types';
+import type { Task, TaskStatus } from '@/lib/types';
+import { STATUS_META, TASK_STATUSES } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
@@ -41,12 +42,19 @@ const dropAnimationConfig: DropAnimation = {
   }),
 };
 
-const STATUS_COLUMNS: { id: string; title: string; description?: string }[] = [
-  { id: 'todo', title: 'To Do', description: 'Tasks ready to be picked up' },
-  { id: 'in-progress', title: 'In Progress', description: 'Tasks currently being worked' },
-  { id: 'review', title: 'Review', description: 'Tasks awaiting review' },
-  { id: 'done', title: 'Done', description: 'Completed tasks' },
-];
+// Titles come from the shared STATUS_META so the board, the Tasks page and the
+// desktop panel can't drift on what a status is called; the descriptions are
+// board-only copy and stay here.
+const COLUMN_DESCRIPTIONS: Record<TaskStatus, string> = {
+  todo: 'Tasks ready to be picked up',
+  'in-progress': 'Tasks currently being worked',
+  review: 'Tasks awaiting review',
+  done: 'Completed tasks',
+};
+
+const STATUS_COLUMNS: { id: string; title: string; description?: string }[] = TASK_STATUSES.map(
+  (id) => ({ id, title: STATUS_META[id].label, description: COLUMN_DESCRIPTIONS[id] })
+);
 
 function KanbanCard({
   task,

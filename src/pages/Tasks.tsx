@@ -27,8 +27,8 @@ import { Search, Plus, Table, LayoutGrid, Filter, Calendar, MoreHorizontal, Chec
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { taskSchema, type TaskForm } from '@/lib/tasks';
 
 type ViewMode = 'kanban' | 'table';
 
@@ -98,15 +98,6 @@ function TaskRowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: ()
   );
 }
 
-const taskSchema = z.object({
-  title: z.string().min(2, 'Title is required'),
-  description: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
-  dueDate: z.string().optional(),
-  projectId: z.string().optional(),
-  assigneeId: z.string().optional(),
-});
-type TaskForm = z.infer<typeof taskSchema>;
 
 export function Tasks() {
   const queryClient = useQueryClient();
