@@ -1,0 +1,228 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@import 'tailwindcss';
+@config '../tailwind.config.js';
+
+/* Portico design tokens as CSS custom properties */
+:root {
+  /* How much of the viewport the desktop app's custom title bar (MainTitleBar,
+     electron/main.cjs createWindow) occupies — 0 everywhere except the main
+     Electron window, so every h-screen-based layout below can stay a single
+     calc() away from correct on both web and desktop. */
+  --app-titlebar-height: 0px;
+
+  /* Light mode (default) */
+  --bg: #f6f4ef;
+  --surface: #fcfbf8;
+  --surface-muted: #efece3;
+  --surface-strong: #e7e3d8;
+  --border: #ded9cc;
+  --border-strong: #c6c0b0;
+  --text-primary: #1c1b17;
+  --text-secondary: #4a463c;
+  --text-muted: #7e786a;
+  --text-faint: #a9a494;
+  --text-disabled: #c6c0b0;
+
+  /* Brand colors */
+  --brand: #1e4034;
+  --brand-hover: #173329;
+  --brand-active: #0f211b;
+  --brand-soft: #e7eee9;
+  --accent: #b77b33;
+  --accent-soft: #f4ebdd;
+
+  /* Semantic */
+  --success: #4f6a34;
+  --success-soft: #edf2e3;
+  --warning: #a86e1d;
+  --warning-soft: #f7edd8;
+  --danger: #b4543a;
+  --danger-soft: #f6e4de;
+  --info: #547085;
+  --info-soft: #e8eef1;
+  --focus: #c48a3f;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgb(28 27 23 / 0.05);
+  --shadow-sm: 0 1px 2px rgb(28 27 23 / 0.06), 0 2px 8px rgb(28 27 23 / 0.05);
+  --shadow-md: 0 4px 12px rgb(28 27 23 / 0.08), 0 8px 24px rgb(28 27 23 / 0.06);
+  --shadow-lg: 0 12px 32px rgb(28 27 23 / 0.16);
+
+  /* Typography */
+  --font-display: 'Fraunces', serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Motion */
+  --duration-hover: 180ms;
+  --duration-press: 120ms;
+  --duration-transition: 200ms;
+  --ease-brand: cubic-bezier(0.2, 0, 0, 1);
+
+  color-scheme: light;
+  font-family: var(--font-sans);
+}
+
+.has-electron-titlebar {
+  --app-titlebar-height: 36px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography base styles — layered so a heading's own Tailwind color utility
+   (e.g. text-bone-50 on a dark surface) can override this default, per normal
+   Tailwind cascade rules. An unlayered rule here would always win over utilities
+   regardless of specificity, which silently broke exactly that case before. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: 34px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 500;
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    font-weight: 500;
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+}
+
+p {
+  margin: 0;
+}
+
+small,
+.text-sm {
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Focus ring utility */
+.focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 2px transparent, 0 0 0 4px transparent;
+  transition: box-shadow var(--duration-hover) var(--ease-brand);
+}
+
+/* :focus-visible (not :focus) so the ring appears for keyboard navigation but not on a
+   plain mouse click — every button in the app was showing this permanently before, since
+   the box-shadow above had no focus qualifier at all. */
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--focus);
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+::-moz-selection {
+  background-color: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+/* Entrance animations — functional, short, brand-eased (reduced-motion handled above) */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 420ms var(--ease-brand) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 500ms ease-out both;
+}
+
+/* Keeps content scrollable without a visible scrollbar — for rails/lists too
+   narrow to render one cleanly (e.g. the collapsed sidebar's icon column). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

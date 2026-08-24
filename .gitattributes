@@ -1,0 +1,16 @@
+# Normalise to LF in the repo. The release workflow's `run:` blocks execute under
+# bash on macOS and Linux runners, where a stray CR terminates lines badly.
+* text=auto eol=lf
+
+# Binary — never touch these.
+*.png binary
+*.ico binary
+*.icns binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.mp3 binary
+*.wav binary

@@ -1,0 +1,122 @@
+name: Build & Release
+
+# Every push to main runs both builders in parallel and republishes the release
+# for whatever version portico-desktop/package.json currently declares. Bump that
+# version to cut a new release instead of overwriting the existing one.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      # Two runners, started together. A failure on one platform must still
+      # leave the other platform's installer available.
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows (x64)
+            runner: windows-latest
+            script: build:win
+            artifact: Portico-Setup.exe
+          # macos-14 runners are Apple Silicon hosts, so this is a native arm64
+          # build rather than a cross-compile.
+          - label: macOS (Apple Silicon)
+            runner: macos-14
+            script: build:mac
+            artifact: Portico-arm64.dmg
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run ${{ matrix.script }}
+        env:
+          # electron-builder otherwise tries to discover and use a signing
+          # identity from the runner keychain; there is none, and the attempt
+          # fails the job. `mac.identity: null` in package.json covers the
+          # config side, this covers the CLI side.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Verify the installer exists
+        shell: bash
+        run: |
+          if [ ! -f "release/${{ matrix.artifact }}" ]; then
+            echo "::error::Expected release/${{ matrix.artifact }} but it was not produced."
+            ls -la release || true
+            exit 1
+          fi
+          ls -lh "release/${{ matrix.artifact }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish release
+    needs: [build]
+    # `always()` so a single-platform failure still ships the platform that did
+    # build, rather than leaving users with nothing.
+    if: always() && needs.build.result != 'cancelled'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from package.json
+        id: meta
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: ls -lh artifacts
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+
+          shopt -s nullglob
+          FILES=(artifacts/*)
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "::error::Both builders failed — there is nothing to release."
+            exit 1
+          fi
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG"               --title "Portico ${TAG}"               --notes-file .github/release-notes.md
+          fi
+
+          # --clobber is what makes re-pushing the same version replace the
+          # binaries in place instead of erroring on an already-existing asset.
+          gh release upload "$TAG" "${FILES[@]}" --clobber
+
+          echo "Published: $(gh release view "$TAG" --json url --jq .url)"
