@@ -136,6 +136,7 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
   // switched away) — without this the mic/system tracks and socket stay open.
   useEffect(
     () => () => {
+      console.log('[call] CallPanel unmounting — tearing down audio/socket as a safety net');
       audio.stop();
       cleanupSocket();
     },
@@ -148,15 +149,19 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
     setTranscript([]);
     setElapsedSeconds(0);
     try {
+      console.log('[call] creating call row…');
       const { data: created } = await api.post<Call>('/calls', { projectId, clientId });
       callIdRef.current = created.id;
+      console.log('[call] created', created.id);
 
       const socket = io(`${API_URL}/calls`, { auth: { token }, autoConnect: true });
       socketRef.current = socket;
+      socket.on('disconnect', (reason) => console.log('[call] socket disconnected, reason:', reason));
       await new Promise<void>((resolve, reject) => {
         socket.once('connect', () => resolve());
         socket.once('connect_error', (err) => reject(err));
       });
+      console.log('[call] socket connected, id:', socket.id);
 
       socket.on('transcript:chunk', (chunk: { id: string; speaker: CallSpeaker; text: string }) => {
         setTranscript((prev) => [...prev, { id: chunk.id, speaker: chunk.speaker, text: chunk.text }]);
@@ -170,13 +175,20 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
           ),
         );
       });
-      socket.on('call:error', (payload: { message: string }) => setError(payload.message));
+      socket.on('call:error', (payload: { message: string }) => {
+        console.error('[call] call:error from server:', payload);
+        setError(payload.message);
+      });
 
       socket.emit('call:join', { callId: created.id });
+      console.log('[call] call:join emitted');
       await api.post(`/calls/${created.id}/start`);
+      console.log('[call] /start acked, requesting mic + system audio…');
       await audio.start();
+      console.log('[call] audio.start() resolved, audio state:', audio.state);
       setStatus('active');
     } catch (err) {
+      console.error('[call] startCall failed:', err);
       setError(err instanceof Error ? err.message : 'Could not start the call.');
       setStatus('error');
       audio.stop();
