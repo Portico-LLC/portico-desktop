@@ -9,6 +9,7 @@ interface TrackRig {
   stream: MediaStream;
   context: AudioContext;
   node: AudioWorkletNode;
+  muteGain: GainNode;
 }
 
 interface UseCallAudioStreamOptions {
@@ -38,6 +39,7 @@ export function useCallAudioStream({ onPcmChunk, onError }: UseCallAudioStreamOp
     if (!rig) return;
     rig.node.port.onmessage = null;
     rig.node.disconnect();
+    rig.muteGain.disconnect();
     rig.context.close().catch(() => {});
     rig.stream.getTracks().forEach((t) => t.stop());
   };
@@ -56,13 +58,21 @@ export function useCallAudioStream({ onPcmChunk, onError }: UseCallAudioStreamOp
     const source = context.createMediaStreamSource(stream);
     const node = new AudioWorkletNode(context, 'pcm-downsampler', {
       numberOfInputs: 1,
-      numberOfOutputs: 0,
+      numberOfOutputs: 1,
       channelCount: 1,
       channelCountMode: 'explicit',
     });
     node.port.onmessage = (evt: MessageEvent<ArrayBuffer>) => onPcmChunk(track, evt.data);
     source.connect(node);
-    return { stream, context, node };
+    // Route the (silent) worklet output to destination through a muted gain —
+    // some Chromium builds stop scheduling process() on a node that never
+    // reaches the destination, since it looks unreachable/prunable from the
+    // render graph's perspective. This keeps the node "live" without making
+    // any sound (gain 0), and doesn't touch what the user actually hears.
+    const muteGain = context.createGain();
+    muteGain.gain.value = 0;
+    node.connect(muteGain).connect(context.destination);
+    return { stream, context, node, muteGain };
   }, [onPcmChunk]);
 
   const start = useCallback(

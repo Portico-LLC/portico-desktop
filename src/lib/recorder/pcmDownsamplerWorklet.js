@@ -16,6 +16,12 @@ class PCMDownsamplerProcessor extends AudioWorkletProcessor {
     this.chunkSampleCount = Math.round((sampleRate * CHUNK_MS) / 1000);
   }
 
+  // `outputs` is intentionally unused — the node has one silent output purely
+  // so it stays connected into an active render graph (see useCallAudioStream:
+  // node -> muted GainNode -> destination). A zero-output sink node has been
+  // known to stop getting scheduled by some Chromium builds since it's not
+  // reachable from the destination; the browser auto-zeroes unwritten output
+  // buffers, so this doesn't need to write anything to `outputs` itself.
   process(inputs) {
     const channel = inputs[0]?.[0];
     if (channel) {
