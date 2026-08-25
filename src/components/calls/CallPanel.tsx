@@ -103,10 +103,23 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
     enabled: status === 'idle',
   });
 
-  const handleAudioError = useCallback((message: string) => {
-    setError(message);
-    setStatus('error');
+  // Temporary diagnostic — mirrors console.log to the backend over the
+  // socket (see CallsGateway.onDebugLog), since getting a clean DevTools
+  // console capture has proven unreliable. Safe no-op if the socket isn't
+  // connected yet. Remove once the disconnect bug is found.
+  const debugLog = useCallback((step: string, detail?: unknown) => {
+    console.log('[call]', step, detail ?? '');
+    socketRef.current?.emit('debug:log', { step, detail });
   }, []);
+
+  const handleAudioError = useCallback(
+    (message: string) => {
+      debugLog('audio error (useCallAudioStream onError)', { message });
+      setError(message);
+      setStatus('error');
+    },
+    [debugLog],
+  );
 
   const handlePcmChunk = useCallback((track: CallTrack, pcm: ArrayBuffer) => {
     const callId = callIdRef.current;
@@ -115,7 +128,7 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
     socket.emit('audio:chunk', { callId, track, pcm });
   }, []);
 
-  const audio = useCallAudioStream({ onPcmChunk: handlePcmChunk, onError: handleAudioError });
+  const audio = useCallAudioStream({ onPcmChunk: handlePcmChunk, onError: handleAudioError, onDebug: debugLog });
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
@@ -149,19 +162,17 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
     setTranscript([]);
     setElapsedSeconds(0);
     try {
-      console.log('[call] creating call row…');
       const { data: created } = await api.post<Call>('/calls', { projectId, clientId });
       callIdRef.current = created.id;
-      console.log('[call] created', created.id);
 
       const socket = io(`${API_URL}/calls`, { auth: { token }, autoConnect: true });
       socketRef.current = socket;
-      socket.on('disconnect', (reason) => console.log('[call] socket disconnected, reason:', reason));
+      socket.on('disconnect', (reason) => debugLog('socket disconnected', { reason }));
       await new Promise<void>((resolve, reject) => {
         socket.once('connect', () => resolve());
         socket.once('connect_error', (err) => reject(err));
       });
-      console.log('[call] socket connected, id:', socket.id);
+      debugLog('socket connected', { socketId: socket.id, callId: created.id });
 
       socket.on('transcript:chunk', (chunk: { id: string; speaker: CallSpeaker; text: string }) => {
         setTranscript((prev) => [...prev, { id: chunk.id, speaker: chunk.speaker, text: chunk.text }]);
@@ -176,19 +187,21 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
         );
       });
       socket.on('call:error', (payload: { message: string }) => {
-        console.error('[call] call:error from server:', payload);
+        debugLog('call:error from server', payload);
         setError(payload.message);
       });
 
       socket.emit('call:join', { callId: created.id });
-      console.log('[call] call:join emitted');
+      debugLog('call:join emitted');
       await api.post(`/calls/${created.id}/start`);
-      console.log('[call] /start acked, requesting mic + system audio…');
+      debugLog('/start acked, requesting mic + system audio…');
       await audio.start();
-      console.log('[call] audio.start() resolved, audio state:', audio.state);
+      debugLog('audio.start() resolved');
       setStatus('active');
     } catch (err) {
-      console.error('[call] startCall failed:', err);
+      const message = err instanceof Error ? err.message : String(err);
+      const name = err instanceof Error ? err.name : undefined;
+      debugLog('startCall failed', { message, name });
       setError(err instanceof Error ? err.message : 'Could not start the call.');
       setStatus('error');
       audio.stop();

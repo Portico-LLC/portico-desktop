@@ -16,6 +16,8 @@ interface UseCallAudioStreamOptions {
   /** `pcm` is raw PCM16 bytes, 24kHz mono, little-endian — one ~200ms buffer. */
   onPcmChunk: (track: CallTrack, pcm: ArrayBuffer) => void;
   onError: (message: string) => void;
+  /** Temporary diagnostic hook — see CallPanel.tsx's debugLog. */
+  onDebug?: (step: string) => void;
 }
 
 /**
@@ -30,7 +32,8 @@ interface UseCallAudioStreamOptions {
  * mixes mic + system audio together for file recording, which is exactly
  * the thing this hook must NOT do.
  */
-export function useCallAudioStream({ onPcmChunk, onError }: UseCallAudioStreamOptions) {
+export function useCallAudioStream({ onPcmChunk, onError, onDebug }: UseCallAudioStreamOptions) {
+  const debug = (step: string) => onDebug?.(step);
   const [state, setState] = useState<CallAudioState>('idle');
   const micRigRef = useRef<TrackRig | null>(null);
   const systemRigRef = useRef<TrackRig | null>(null);
@@ -78,6 +81,7 @@ export function useCallAudioStream({ onPcmChunk, onError }: UseCallAudioStreamOp
   const start = useCallback(
     async (opts: { micDeviceId?: string } = {}) => {
       setState('starting');
+      debug('audio: requesting getUserMedia (mic)…');
       try {
         const micStream = await navigator.mediaDevices.getUserMedia({
           audio: {
@@ -87,12 +91,14 @@ export function useCallAudioStream({ onPcmChunk, onError }: UseCallAudioStreamOp
             noiseSuppression: true,
           },
         });
+        debug('audio: getUserMedia resolved, requesting getDisplayMedia (system)…');
 
         // getDisplayMedia requires requesting video for Electron's source-picker
         // flow to resolve system audio (see main.cjs's setupDisplayMediaHandler,
         // which returns { audio: 'loopback' } only for a video+audio request) —
         // the video track is discarded immediately, only the audio is kept.
         const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        debug('audio: getDisplayMedia resolved');
         displayStream.getVideoTracks().forEach((t) => t.stop());
         const systemAudioTrack = displayStream.getAudioTracks()[0];
         if (!systemAudioTrack) {
@@ -102,13 +108,20 @@ export function useCallAudioStream({ onPcmChunk, onError }: UseCallAudioStreamOp
         const systemStream = new MediaStream([systemAudioTrack]);
         // The browser/OS "Stop sharing" control ends the track directly — treat
         // that the same as the user ending the call.
-        systemAudioTrack.addEventListener('ended', stop);
+        systemAudioTrack.addEventListener('ended', () => {
+          debug('audio: system track ended (Stop sharing clicked, or OS/browser revoked it)');
+          stop();
+        });
 
+        debug('audio: setting up mic worklet…');
         micRigRef.current = await setupTrack('mic', micStream);
+        debug('audio: setting up system worklet…');
         systemRigRef.current = await setupTrack('system', systemStream);
+        debug('audio: both worklets set up');
 
         setState('active');
       } catch (err) {
+        debug(`audio: start() failed — ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`);
         stop();
         onError(mapMediaError(err));
         setState('error');
