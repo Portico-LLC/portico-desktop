@@ -89,7 +89,7 @@ export function Login() {
         }
       >
         {/* Role toggle */}
-        <div className="mb-7 grid grid-cols-3 gap-1 rounded-md border border-ink-200 bg-ink-100 p-1">
+        <div className="mb-6 grid grid-cols-3 gap-1 rounded-md border border-ink-200 bg-ink-100 p-1">
           {MODES.map(({ key, label, icon: Icon }) => {
             const active = mode === key;
             return (
@@ -125,7 +125,7 @@ export function Login() {
           })}
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">

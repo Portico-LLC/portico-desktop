@@ -62,7 +62,7 @@ function createWindow() {
     width,
     height,
     minWidth: 960,
-    minHeight: 640,
+    minHeight: 860,
     icon: path.join(__dirname, '..', 'build', 'icons', 'png', '256x256.png'),
     title: 'Portico',
     // Windows/Linux get a fully custom title bar (MainTitleBar.tsx) with our

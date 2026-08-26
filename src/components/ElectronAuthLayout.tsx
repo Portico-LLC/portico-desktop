@@ -13,8 +13,8 @@ export function ElectronAuthLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-var(--app-titlebar-height))] items-center justify-center bg-bone-50">
-      <div className="w-full max-w-md px-6">{children}</div>
+    <div className="flex min-h-[calc(100vh-var(--app-titlebar-height))] justify-center bg-bone-50 py-10">
+      <div className="w-full max-w-md self-center px-6">{children}</div>
     </div>
   );
 }

@@ -14,7 +14,7 @@ export function AuthCard({ logo, eyebrow, title, subtitle, children, className }
   return (
     <div
       className={cn(
-        'animate-fade-up relative overflow-hidden rounded-lg border border-ink-200 bg-bone-100 p-8 shadow-lg',
+        'animate-fade-up relative overflow-hidden rounded-lg border border-ink-200 bg-bone-100 p-7 shadow-lg',
         className
       )}
     >
@@ -22,7 +22,7 @@ export function AuthCard({ logo, eyebrow, title, subtitle, children, className }
           wordmark spec, carried onto the card that greets a returning studio owner. */}
       <span aria-hidden className="absolute inset-x-0 top-0 h-[2px] bg-brass-500" />
 
-      {logo && <div className="mb-6 flex justify-center">{logo}</div>}
+      {logo && <div className="mb-5 flex justify-center">{logo}</div>}
       <div className="text-center">
         {eyebrow && (
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-brass-600">
@@ -35,7 +35,7 @@ export function AuthCard({ logo, eyebrow, title, subtitle, children, className }
         {subtitle && <p className="mt-2 text-ink-500">{subtitle}</p>}
       </div>
 
-      <div className="mt-8">{children}</div>
+      <div className="mt-6">{children}</div>
     </div>
   );
 }
