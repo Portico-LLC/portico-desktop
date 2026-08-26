@@ -141,6 +141,7 @@ function VaultWorkspace() {
       setSelectedVaultId(vault.id);
       setNewVaultOpen(false);
     },
+    meta: { successMessage: 'Vault created', suppressErrorToast: true },
   });
 
   const addMember = useMutation({
@@ -157,11 +158,13 @@ function VaultWorkspace() {
       });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vault-members', selectedVaultId] }),
+    meta: { successMessage: 'Member added to vault', errorTitle: 'Could not add member' },
   });
 
   const removeMember = useMutation({
     mutationFn: (memberId: string) => api.delete(`/vault/vaults/${selectedVaultId}/members/${memberId}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vault-members', selectedVaultId] }),
+    meta: { successMessage: 'Member removed from vault', errorTitle: 'Could not remove member' },
   });
 
   const saveItem = useMutation({
@@ -176,6 +179,7 @@ function VaultWorkspace() {
       setItemDialogOpen(false);
       setEditingItem(null);
     },
+    meta: { successMessage: 'Item saved', errorTitle: 'Could not save item' },
   });
 
   const deleteItem = useMutation({
@@ -184,6 +188,7 @@ function VaultWorkspace() {
       queryClient.invalidateQueries({ queryKey: ['vault-items', selectedVaultId] });
       setDeleteItemId(null);
     },
+    meta: { successMessage: 'Item deleted', errorTitle: 'Could not delete item' },
   });
 
   const existingMemberKeys = new Set(members.map((m) => `${m.principalType}:${m.principalId}`));

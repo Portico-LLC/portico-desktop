@@ -62,6 +62,7 @@ function SetupFlow({ apiBase }: { apiBase: string }) {
       setPrivateKeyRef(result.privateKey);
     },
     onError: (err) => setError(getErrorMessage(err)),
+    meta: { successMessage: 'Vault set up', suppressErrorToast: true },
   });
 
   const handleSubmit = (e: React.FormEvent) => {

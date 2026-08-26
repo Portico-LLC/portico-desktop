@@ -128,6 +128,7 @@ export function Documents() {
       setPageDialogOpen(false);
       setEditingPage(null);
     },
+    meta: { successMessage: 'Page saved', suppressErrorToast: true },
   });
 
   const saveMeta = useMutation({
@@ -141,6 +142,7 @@ export function Documents() {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       setMetaDialogDoc(null);
     },
+    meta: { successMessage: 'Document updated', suppressErrorToast: true },
   });
 
   const deleteMutation = useMutation({
@@ -150,6 +152,7 @@ export function Documents() {
       queryClient.invalidateQueries({ queryKey: ['documents-quota'] });
       setDeleteDoc(null);
     },
+    meta: { successMessage: 'Document deleted', errorTitle: 'Could not delete document' },
   });
 
   const openEdit = (doc: AppDocument) => {

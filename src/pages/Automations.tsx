@@ -82,11 +82,13 @@ function AutomationRow({ workflow, onDeleteRequest }: { workflow: Workflow; onDe
   const activateMutation = useMutation({
     mutationFn: (isActive: boolean) => api.patch<Workflow>(`/automations/${workflow.id}/active`, { isActive }).then((r) => r.data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['automations'] }),
+    meta: { suppressErrorToast: true },
   });
 
   const runMutation = useMutation({
     mutationFn: () => api.post<WorkflowRun>(`/automations/${workflow.id}/run`).then((r) => r.data),
     onSuccess: (run) => setActiveRunId(run.id),
+    meta: { successMessage: 'Automation started', errorTitle: 'Could not run automation' },
   });
 
   const { data: activeRun } = useQuery({
@@ -180,6 +182,7 @@ export function Automations() {
       setDescription('');
       navigate(`/automations/${workflow.id}`);
     },
+    meta: { successMessage: 'Automation created', suppressErrorToast: true },
   });
 
   const deleteMutation = useMutation({
@@ -188,6 +191,7 @@ export function Automations() {
       queryClient.invalidateQueries({ queryKey: ['automations'] });
       setDeleteTarget(null);
     },
+    meta: { successMessage: 'Automation deleted', suppressErrorToast: true },
   });
 
   if (isLoading) {

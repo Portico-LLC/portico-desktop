@@ -60,6 +60,7 @@ export function TeamChat() {
       setSelectedId(channel.id);
       setNewChannelOpen(false);
     },
+    meta: { successMessage: 'Channel created', errorTitle: 'Could not create channel' },
   });
 
   const createDm = useMutation({
@@ -70,6 +71,7 @@ export function TeamChat() {
       setSelectedId(channel.id);
       setNewDmOpen(false);
     },
+    meta: { successMessage: 'Conversation started', errorTitle: 'Could not start conversation' },
   });
 
   const startDmWithOwner = useMutation({

@@ -46,6 +46,7 @@ export function ProjectTemplates() {
       queryClient.invalidateQueries({ queryKey: ['project-templates'] });
       setDeleteTemplateId(null);
     },
+    meta: { successMessage: 'Template deleted', errorTitle: 'Could not delete template' },
   });
 
   const instantiateMutation = useMutation({
@@ -57,6 +58,7 @@ export function ProjectTemplates() {
       navigate('/projects');
       void project;
     },
+    meta: { successMessage: 'Project created from template', errorTitle: 'Could not create project' },
   });
 
   const {

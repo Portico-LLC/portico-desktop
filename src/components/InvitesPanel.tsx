@@ -30,12 +30,14 @@ export function InvitesPanel({ type }: { type: InvitationType }) {
     mutationFn: (id: string) => api.post(`/invitations/${id}/resend`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invitations', type] }),
     onError: (err) => setError(getErrorMessage(err)),
+    meta: { successMessage: 'Invite resent', suppressErrorToast: true },
   });
 
   const revokeMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/invitations/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invitations', type] }),
     onError: (err) => setError(getErrorMessage(err)),
+    meta: { successMessage: 'Invite revoked', suppressErrorToast: true },
   });
 
   if (pending.length === 0) return null;

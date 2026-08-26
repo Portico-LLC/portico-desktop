@@ -69,6 +69,7 @@ export function Projects() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setDialogOpen(false);
     },
+    meta: { successMessage: 'Project created', errorTitle: 'Could not create project' },
   });
 
   const updateMutation = useMutation({
@@ -79,11 +80,13 @@ export function Projects() {
       setDialogOpen(false);
       setEditingProject(null);
     },
+    meta: { successMessage: 'Project updated', errorTitle: 'Could not update project' },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/projects/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
+    meta: { successMessage: 'Project deleted', errorTitle: 'Could not delete project' },
   });
 
   const saveAsTemplateMutation = useMutation({
@@ -94,6 +97,7 @@ export function Projects() {
       setTemplatingProject(null);
       setTemplateName('');
     },
+    meta: { successMessage: 'Template saved', errorTitle: 'Could not save template' },
   });
 
   const filteredProjects = (projects || []).filter(

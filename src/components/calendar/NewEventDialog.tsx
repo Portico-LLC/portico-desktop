@@ -106,6 +106,7 @@ export function NewEventDialog({ open, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ['google-calendar-events'] });
       onOpenChange(false);
     },
+    meta: { successMessage: 'Event created', suppressErrorToast: true },
   });
 
   const availableMembers = members.filter(

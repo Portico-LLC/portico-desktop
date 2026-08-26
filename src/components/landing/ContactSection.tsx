@@ -32,6 +32,7 @@ export function ContactSection() {
       setSent(true);
       reset();
     },
+    meta: { suppressErrorToast: true },
   });
 
   return (

@@ -5,6 +5,7 @@ import { MainTitleBar } from '@/components/MainTitleBar';
 import { SidebarProvider } from '@/components/SidebarContext';
 import { TeamChatSocketProvider } from '@/components/TeamChatSocketProvider';
 import { CommandPaletteProvider } from '@/components/CommandPaletteProvider';
+import { ActionToast } from '@/components/ActionToast';
 import { Layout } from '@/components/Layout';
 import { ProtectedRoute, ClientProtectedRoute, OwnerOnlyRoute } from '@/components/ProtectedRoute';
 import { AuthLayout } from '@/components/AuthLayout';
@@ -90,6 +91,7 @@ export default function App() {
       <SidebarProvider>
       <TeamChatSocketProvider>
         <CommandPaletteProvider />
+        <ActionToast />
         <ElectronChrome>
         <Routes>
           <Route path="/terms" element={<Terms />} />

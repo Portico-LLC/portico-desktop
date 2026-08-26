@@ -106,6 +106,7 @@ function ClientVaultWorkspace() {
       queryClient.invalidateQueries({ queryKey: ['client-vault-items', selectedVaultId] });
       setItemDialogOpen(false);
     },
+    meta: { successMessage: 'Item saved', errorTitle: 'Could not save item' },
   });
 
   const detailContent = detailItemId ? decryptedItems.get(detailItemId) ?? null : null;

@@ -67,6 +67,7 @@ export function Calendar() {
       queryClient.invalidateQueries({ queryKey: ['google-calendar-status'] });
       queryClient.invalidateQueries({ queryKey: ['google-calendar-events'] });
     },
+    meta: { successMessage: 'Google Calendar connected', suppressErrorToast: true },
   });
 
   const disconnectMutation = useMutation({
@@ -75,6 +76,7 @@ export function Calendar() {
       queryClient.invalidateQueries({ queryKey: ['google-calendar-status'] });
       queryClient.invalidateQueries({ queryKey: ['google-calendar-events'] });
     },
+    meta: { successMessage: 'Google Calendar disconnected', errorTitle: 'Could not disconnect Google Calendar' },
   });
 
   const goPrev = () =>

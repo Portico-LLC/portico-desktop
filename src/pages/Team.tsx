@@ -56,6 +56,7 @@ export function Team() {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setDialogOpen(false);
     },
+    meta: { successMessage: 'Employee added', errorTitle: 'Could not add employee' },
   });
 
   const updateMutation = useMutation({
@@ -66,11 +67,13 @@ export function Team() {
       setDialogOpen(false);
       setEditingEmployee(null);
     },
+    meta: { successMessage: 'Employee updated', errorTitle: 'Could not update employee' },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/employees/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }),
+    meta: { successMessage: 'Employee removed', errorTitle: 'Could not remove employee' },
   });
 
   const assignMutation = useMutation({
@@ -80,6 +83,7 @@ export function Team() {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setAssigningEmployee(null);
     },
+    meta: { successMessage: 'Project assignments updated', errorTitle: 'Could not update assignments' },
   });
 
   const filteredEmployees = employees.filter(

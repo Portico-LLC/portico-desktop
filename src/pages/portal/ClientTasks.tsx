@@ -100,6 +100,7 @@ export function ClientTasks() {
       setDialogOpen(false);
       reset();
     },
+    meta: { successMessage: 'Task created', errorTitle: 'Could not create task' },
   });
 
   const updateTask = useMutation({

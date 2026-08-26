@@ -158,8 +158,13 @@ export function Tasks() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setDialogOpen(false);
     },
+    meta: { successMessage: 'Task created', errorTitle: 'Could not create task' },
   });
 
+  // No successMessage here on purpose: this mutation also backs high-frequency,
+  // low-signal changes (kanban drag status, quick status dropdown, subtask
+  // toggle) that shouldn't pop a toast every time. Failures still surface via
+  // the global mutation error fallback.
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, ...updates }: Partial<Task> & { id: string }) =>
       api.patch(`/tasks/${id}`, cleanPayload(updates as Record<string, unknown>)).then((res) => res.data),
@@ -175,6 +180,7 @@ export function Tasks() {
   const deleteTaskMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/tasks/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+    meta: { successMessage: 'Task deleted', errorTitle: 'Could not delete task' },
   });
 
   const addNoteMutation = useMutation({

@@ -57,6 +57,7 @@ export function Clients() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       setDialogOpen(false);
     },
+    meta: { successMessage: 'Client created', errorTitle: 'Could not create client' },
   });
 
   const updateMutation = useMutation({
@@ -67,11 +68,13 @@ export function Clients() {
       setDialogOpen(false);
       setEditingClient(null);
     },
+    meta: { successMessage: 'Client updated', errorTitle: 'Could not update client' },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/clients/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+    meta: { successMessage: 'Client deleted', errorTitle: 'Could not delete client' },
   });
 
   const filteredClients = (clients || []).filter(

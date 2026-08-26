@@ -48,6 +48,7 @@ export function InviteDialog({ type, open, onOpenChange }: InviteDialogProps) {
       onOpenChange(false);
     },
     onError: (err) => setError(getErrorMessage(err)),
+    meta: { successMessage: 'Invite sent', suppressErrorToast: true },
   });
 
   return (

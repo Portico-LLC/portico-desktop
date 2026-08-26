@@ -209,7 +209,6 @@ export interface Project {
 }
 
 export type CallStatus = 'pending' | 'active' | 'ended' | 'failed';
-export type CallSpeaker = 'employee' | 'client';
 export type CallPlatform = 'desktop' | 'google_meet' | 'zoom' | 'microsoft_teams';
 
 export interface Call {
@@ -224,18 +223,6 @@ export interface Call {
   startedAt?: string;
   endedAt?: string;
   durationSeconds?: number;
-  createdAt: string;
-}
-
-export interface CallTranscriptChunk {
-  id: string;
-  callId: string;
-  speaker: CallSpeaker;
-  text: string;
-  startedAtMs: number;
-  endedAtMs: number;
-  botActionSummary?: string;
-  botActionTaskId?: string;
   createdAt: string;
 }
 
