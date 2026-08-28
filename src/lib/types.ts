@@ -10,6 +10,7 @@ export const COMPANY_MODULES = [
   'brain',
   'invoices',
   'projectTemplates',
+  'games',
 ] as const;
 
 export type CompanyModule = (typeof COMPANY_MODULES)[number];
@@ -56,8 +57,8 @@ export interface InvitationPreview {
   expiresAt: string;
 }
 
-export type NotificationType = 'team_message' | 'client_message' | 'task_assigned' | 'mention';
-export type NotificationSourceType = 'channel' | 'conversation' | 'task';
+export type NotificationType = 'team_message' | 'client_message' | 'task_assigned' | 'mention' | 'game_invite';
+export type NotificationSourceType = 'channel' | 'conversation' | 'task' | 'game_room';
 
 export interface AppNotification {
   id: string;
@@ -656,4 +657,325 @@ export interface AppDocument {
 export interface DocumentQuota {
   usedBytes: number;
   limitBytes: number;
+}
+
+// ---------------- Arcade ----------------
+
+export type GameType = 'snake_royale' | 'doodle_relay' | 'word_bomb';
+export type GameRoomStatus = 'lobby' | 'starting' | 'in_progress' | 'finished' | 'abandoned';
+export type GameRoomVisibility = 'open' | 'invite_only';
+export type GameRoomMemberType = 'owner' | 'employee' | 'bot';
+export type GameRoomMemberStatus = 'invited' | 'requested' | 'joined' | 'ready' | 'declined' | 'kicked' | 'left';
+
+export interface GameRoomMember {
+  id: string;
+  roomId: string;
+  seatIndex: number | null;
+  memberType: GameRoomMemberType;
+  memberId: string;
+  displayName: string;
+  isHost: boolean;
+  isBot: boolean;
+  status: GameRoomMemberStatus;
+  joinedAt?: string;
+  readyAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GameRoomSummary {
+  id: string;
+  gameType: GameType;
+  hostType: 'owner' | 'employee';
+  hostId: string;
+  hostName: string;
+  status: GameRoomStatus;
+  visibility: GameRoomVisibility;
+  maxPlayers: number;
+  fillWithBots: boolean;
+  roundsTotal: number;
+  roundsPlayed: number;
+  activeCount: number;
+  isHost: boolean;
+  myStatus: GameRoomMemberStatus | null;
+  createdAt: string;
+}
+
+export interface GameRoomDetail {
+  id: string;
+  ownerId: string;
+  gameType: GameType;
+  hostType: 'owner' | 'employee';
+  hostId: string;
+  status: GameRoomStatus;
+  visibility: GameRoomVisibility;
+  maxPlayers: number;
+  fillWithBots: boolean;
+  roundsTotal: number;
+  roundsPlayed: number;
+  settings: Record<string, unknown>;
+  startedAt?: string;
+  endedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  members: GameRoomMember[];
+}
+
+export interface GameMatchPlayerResult {
+  id: string;
+  matchId: string;
+  memberType: GameRoomMemberType;
+  memberId: string;
+  displayName: string;
+  isBot: boolean;
+  teamId?: string;
+  placement?: number;
+  won: boolean;
+  score: number;
+  roundsWon: number;
+  createdAt: string;
+}
+
+export interface GameMatchHistoryEntry {
+  id: string;
+  roomId: string;
+  gameType: GameType;
+  isSoloPractice: boolean;
+  roundsPlayed: number;
+  startedAt?: string;
+  endedAt?: string;
+  createdAt: string;
+  players: GameMatchPlayerResult[];
+}
+
+export interface GameRoundResultEntry {
+  id: string;
+  matchId: string;
+  roundNumber: number;
+  summary: string;
+  payload: Record<string, unknown>;
+  startedAt?: string;
+  endedAt?: string;
+  createdAt: string;
+}
+
+export interface GameRoomResult {
+  id: string;
+  roomId: string;
+  ownerId: string;
+  gameType: GameType;
+  isSoloPractice: boolean;
+  roundsPlayed: number;
+  startedAt?: string;
+  endedAt?: string;
+  createdAt: string;
+  players: GameMatchPlayerResult[];
+  rounds: GameRoundResultEntry[];
+}
+
+export interface ArcadeLeaderboardRow {
+  memberType: GameRoomMemberType;
+  memberId: string;
+  displayName: string;
+  wins: number;
+  matchesPlayed: number;
+  totalScore: number;
+  totalRoundsWon: number;
+}
+
+export interface ArcadeSeatRef {
+  seatIndex: number;
+  memberType: GameRoomMemberType;
+  memberId: string;
+  displayName: string;
+  isBot: boolean;
+}
+
+export interface RoomStartedPayload {
+  roomId: string;
+  gameType: GameType;
+  seats: ArcadeSeatRef[];
+}
+
+export interface RoomStartingPayload {
+  roomId: string;
+  startsAt: string;
+}
+
+export interface PresenceUpdatePayload {
+  roomId: string;
+  online: string[];
+}
+
+// Word Bomb realtime payloads (socket-only, never persisted verbatim — see word-bomb.engine.ts)
+
+export interface WordBombTurnStartPayload {
+  roomId: string;
+  activeSeat: number;
+  prompt: string;
+  fuseMs: number;
+  deadlineAt: number;
+  players: { seat: number; lives: number; alive: boolean }[];
+}
+
+export type WordBombRejectReason = 'empty' | 'not_a_word' | 'already_used' | 'missing_substring';
+
+export interface WordBombSubmitResultPayload {
+  roomId: string;
+  seat: number;
+  word: string;
+  accepted: boolean;
+  reason?: WordBombRejectReason;
+}
+
+export interface WordBombEliminatedPayload {
+  roomId: string;
+  seat: number;
+  livesRemaining: number;
+  eliminated: boolean;
+  cause: 'timeout';
+}
+
+export interface WordBombRoundEndPayload {
+  roomId: string;
+  roundNumber: number;
+  winnerSeat: number | null;
+  standings: { seat: number; roundsWon: number; score: number }[];
+}
+
+export interface WordBombMatchEndPayload {
+  roomId: string;
+  players: { seat: number; placement?: number; won: boolean; score: number; roundsWon: number }[];
+}
+
+// Snake Royale realtime payloads — snake:tick fires ~15x/sec (server tick rate), never
+// persisted verbatim (see snake-royale.engine.ts).
+
+export type Direction = 'up' | 'down' | 'left' | 'right';
+
+export interface GridPoint {
+  x: number;
+  y: number;
+}
+
+export interface SnakeSnapshotEntry {
+  seat: number;
+  alive: boolean;
+  segments: GridPoint[];
+  length: number;
+}
+
+export interface ArenaBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+export interface SnakeRoundStartPayload {
+  roomId: string;
+  roundNumber: number;
+  gridSize: number;
+  tickMs: number;
+  snakes: SnakeSnapshotEntry[];
+  pickups: GridPoint[];
+  arenaBounds: ArenaBounds;
+}
+
+export interface SnakeTickPayload {
+  roomId: string;
+  tick: number;
+  snakes: SnakeSnapshotEntry[];
+  pickups: GridPoint[];
+  arenaBounds: ArenaBounds;
+  deaths: number[];
+}
+
+export interface SnakeRoundEndPayload {
+  roomId: string;
+  roundNumber: number;
+  winnerSeat: number | null;
+  standings: { seat: number; roundsWon: number; score: number }[];
+}
+
+export interface SnakeMatchEndPayload {
+  roomId: string;
+  players: { seat: number; placement?: number; won: boolean; score: number; roundsWon: number }[];
+}
+
+// Doodle Relay realtime payloads. Strokes are pure ephemeral relay, never persisted.
+
+export type DoodleTool = 'pen' | 'eraser';
+export type StrokePhase = 'start' | 'move' | 'end';
+
+/** Normalized 0-1 coordinates (resolution-independent — the artist's canvas may be a
+ *  different pixel size than a guesser's). */
+export interface NormalizedPoint {
+  x: number;
+  y: number;
+}
+
+export interface DoodleRoundStartPayload {
+  roomId: string;
+  roundNumber: number;
+  artistSeat: number;
+  wordLength: number;
+  durationMs: number;
+  deadlineAt: number;
+}
+
+/** Sent only to the artist, over their personal socket room — never broadcast room-wide. */
+export interface DoodleRoundStartArtistPayload {
+  roomId: string;
+  roundNumber: number;
+  word: string;
+  durationMs: number;
+  deadlineAt: number;
+}
+
+export interface DoodleStrokePayload {
+  roomId: string;
+  strokeId: string;
+  phase: StrokePhase;
+  point?: NormalizedPoint;
+  color?: string;
+  width?: number;
+  tool?: DoodleTool;
+}
+
+export interface DoodleClearPayload {
+  roomId: string;
+}
+
+export interface DoodleGuessResultPayload {
+  roomId: string;
+  correct: boolean;
+  pointsAwarded?: number;
+}
+
+export interface DoodleGuessPublicPayload {
+  roomId: string;
+  seat: number;
+  text: string;
+}
+
+export interface DoodleGuessCorrectPayload {
+  roomId: string;
+  seat: number;
+  pointsAwarded: number;
+  order: number;
+}
+
+export interface DoodleRoundRevealPayload {
+  roomId: string;
+  roundNumber: number;
+  word: string;
+  artistSeat: number;
+  winnerSeat: number | null;
+  scores: { seat: number; score: number; roundsWon: number }[];
+}
+
+export interface DoodleMatchEndPayload {
+  roomId: string;
+  players: { seat: number; placement?: number; won: boolean; score: number; roundsWon: number }[];
 }

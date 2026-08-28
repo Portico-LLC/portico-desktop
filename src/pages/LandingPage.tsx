@@ -6,6 +6,7 @@ import { CollabBento } from '@/components/landing/CollabBento';
 import { VaultBand } from '@/components/landing/VaultBand';
 import { BrainCanvas } from '@/components/landing/BrainCanvas';
 import { TrustLedger } from '@/components/landing/TrustLedger';
+import { ArcadeShowcase } from '@/components/landing/ArcadeShowcase';
 import { DownloadSection } from '@/components/landing/DownloadSection';
 import { ContactSection } from '@/components/landing/ContactSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -38,6 +39,7 @@ export function LandingPage() {
       <VaultBand />
       <BrainCanvas />
       <TrustLedger />
+      <ArcadeShowcase />
       {/* Nothing to download when you are already in the desktop app. */}
       {!isElectron && <DownloadSection />}
       <ContactSection />

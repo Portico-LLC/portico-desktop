@@ -4,6 +4,7 @@ import { BrowserRouter, HashRouter, Routes, Route, useLocation } from 'react-rou
 import { MainTitleBar } from '@/components/MainTitleBar';
 import { SidebarProvider } from '@/components/SidebarContext';
 import { TeamChatSocketProvider } from '@/components/TeamChatSocketProvider';
+import { ArcadeSocketProvider } from '@/components/ArcadeSocketProvider';
 import { CommandPaletteProvider } from '@/components/CommandPaletteProvider';
 import { ActionToast } from '@/components/ActionToast';
 import { Layout } from '@/components/Layout';
@@ -88,6 +89,13 @@ function ElectronChrome({ children }: { children: ReactNode }) {
 const Documents = lazy(() => import('@/pages/Documents').then((m) => ({ default: m.Documents })));
 const ClientDocuments = lazy(() => import('@/pages/portal/ClientDocuments').then((m) => ({ default: m.ClientDocuments })));
 
+// Lazy-loaded: canvas rendering + per-game data (word bank, dictionary) is meaningfully
+// heavier than a typical page — only fetched when someone actually visits Arcade.
+const ArcadeHub = lazy(() => import('@/pages/arcade/ArcadeHub').then((m) => ({ default: m.ArcadeHub })));
+const ArcadeRoom = lazy(() => import('@/pages/arcade/ArcadeRoom').then((m) => ({ default: m.ArcadeRoom })));
+const ArcadeLeaderboard = lazy(() => import('@/pages/arcade/ArcadeLeaderboard').then((m) => ({ default: m.ArcadeLeaderboard })));
+const ArcadeHistory = lazy(() => import('@/pages/arcade/ArcadeHistory').then((m) => ({ default: m.ArcadeHistory })));
+
 function LazyPageFallback() {
   return <div className="flex h-64 items-center justify-center text-sm text-ink-400">Loading…</div>;
 }
@@ -97,6 +105,7 @@ export default function App() {
     <Router>
       <SidebarProvider>
       <TeamChatSocketProvider>
+      <ArcadeSocketProvider>
         <CommandPaletteProvider />
         <ActionToast />
         <ElectronChrome>
@@ -143,6 +152,40 @@ export default function App() {
               </Route>
               <Route element={<ModuleGuard module="teamChat" />}>
                 <Route path="/team-chat" element={<TeamChat />} />
+              </Route>
+              <Route element={<ModuleGuard module="games" />}>
+                <Route
+                  path="/arcade"
+                  element={
+                    <Suspense fallback={<LazyPageFallback />}>
+                      <ArcadeHub />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/arcade/leaderboard"
+                  element={
+                    <Suspense fallback={<LazyPageFallback />}>
+                      <ArcadeLeaderboard />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/arcade/history"
+                  element={
+                    <Suspense fallback={<LazyPageFallback />}>
+                      <ArcadeHistory />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/arcade/rooms/:roomId"
+                  element={
+                    <Suspense fallback={<LazyPageFallback />}>
+                      <ArcadeRoom />
+                    </Suspense>
+                  }
+                />
               </Route>
               <Route element={<ModuleGuard module="vault" />}>
                 <Route path="/vault" element={<Vault />} />
@@ -215,6 +258,7 @@ export default function App() {
           </Route>
         </Routes>
         </ElectronChrome>
+      </ArcadeSocketProvider>
       </TeamChatSocketProvider>
       </SidebarProvider>
     </Router>

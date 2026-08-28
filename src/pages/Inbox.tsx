@@ -1,7 +1,7 @@
 import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, MessageSquare, Hash, CheckSquare, AtSign, CheckCheck, AlertCircle, Trash2 } from 'lucide-react';
+import { Bell, MessageSquare, Hash, CheckSquare, AtSign, CheckCheck, AlertCircle, Trash2, Gamepad2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { api, getErrorMessage } from '@/lib/api';
 import type { AppNotification, NotificationPage, NotificationType } from '@/lib/types';
@@ -13,6 +13,7 @@ const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
   client_message: <MessageSquare size={14} />,
   task_assigned: <CheckSquare size={14} />,
   mention: <AtSign size={14} />,
+  game_invite: <Gamepad2 size={14} />,
 };
 
 type FilterTab = 'all' | 'unread' | 'mentions';

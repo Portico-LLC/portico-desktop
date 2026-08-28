@@ -134,6 +134,18 @@
   --steel-600: #405165;
   --steel-700: #33404F;
 
+  /* Arcade player-identity colors (Portico Arcade). Six of the eight simultaneous-player
+     slots reuse existing palette steps (pine/brass/terracotta/steel/ochre/moss) — these two
+     are the only genuinely new hues in the whole system, added because telling 8 players
+     apart at a glance needs more distinguishable hues than the core palette provides. Kept
+     at the same muted "studio paper" saturation as everything else (not neon/electric game
+     colors), and deliberately far from both the forbidden violet/indigo family and every
+     existing token's hue. */
+  --seat-rose: hsl(344, 32%, 45%);
+  --seat-rose-soft: hsl(344, 45%, 94%);
+  --seat-slate: hsl(174, 24%, 38%);
+  --seat-slate-soft: hsl(174, 35%, 93%);
+
   /* Canvas/graph colors (React Flow's Background/MiniMap/edge props take a
      plain color string, not a Tailwind class) — composed from the palette
      above so they re-theme along with everything else. */
@@ -282,6 +294,11 @@
   --steel-500: hsl(205, 32%, 58%);
   --steel-600: hsl(206, 36%, 66%);
   --steel-700: hsl(207, 40%, 74%);
+
+  --seat-rose: hsl(344, 40%, 64%);
+  --seat-rose-soft: hsl(344, 25%, 18%);
+  --seat-slate: hsl(174, 28%, 56%);
+  --seat-slate-soft: hsl(174, 20%, 15%);
 
   --minimap-mask: rgb(0 0 0 / 0.35);
 

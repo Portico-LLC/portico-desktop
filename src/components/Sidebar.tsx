@@ -23,6 +23,7 @@ import {
   Search,
   LayoutTemplate,
   CalendarDays,
+  Gamepad2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motionTransition, springs } from '@/lib/motion/springs';
@@ -77,6 +78,7 @@ const ownerNavSections: NavSection[] = [
     label: 'Collaborate',
     items: [
       { label: 'Messages', icon: <MessageSquare size={18} />, href: '/team-chat', module: 'teamChat' },
+      { label: 'Arcade', icon: <Gamepad2 size={18} />, href: '/arcade', module: 'games' },
       { label: 'Brain', icon: <Brain size={18} />, href: '/brain', module: 'brain' },
       { label: 'Vault', icon: <Shield size={18} />, href: '/vault', module: 'vault' },
       { label: 'Documents', icon: <FileStack size={18} />, href: '/documents', module: 'documents' },
@@ -108,6 +110,7 @@ const employeeNavSections: NavSection[] = [
     label: 'Collaborate',
     items: [
       { label: 'Messages', icon: <MessageSquare size={18} />, href: '/team-chat', module: 'teamChat' },
+      { label: 'Arcade', icon: <Gamepad2 size={18} />, href: '/arcade', module: 'games' },
       { label: 'Vault', icon: <Shield size={18} />, href: '/vault', module: 'vault' },
       { label: 'Documents', icon: <FileStack size={18} />, href: '/documents', module: 'documents' },
     ],

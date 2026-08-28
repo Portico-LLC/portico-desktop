@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: '#features', label: 'Features' },
   { href: '#security', label: 'Security' },
   { href: '#ai', label: 'AI' },
+  { href: '#arcade', label: 'Arcade' },
   // The Download section is not rendered inside the desktop app, so the anchor
   // that jumps to it must not be either — it would scroll to nothing.
   ...(isElectron ? [] : [{ href: '#download', label: 'Download' }]),
