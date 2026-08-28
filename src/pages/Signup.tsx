@@ -5,15 +5,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
 import { getErrorMessage } from '@/lib/api';
-import type { AuthResponse } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { AuthCard } from '@/components/auth/AuthCard';
 import { GoogleButton } from '@/components/auth/GoogleButton';
+import type { GoogleAuthResult } from '@/lib/googleAuth';
 import { Logo } from '@/components/brand/Logo';
-import { User, Mail, Building2, AlertCircle, ArrowRight } from 'lucide-react';
+import { User, Mail, Building2, AlertCircle, ArrowRight, MailCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const signupSchema = z.object({
@@ -49,10 +49,17 @@ export function Signup() {
   const isLoading = useAuthStore((s) => s.isLoading);
   const [error, setError] = useState<string | null>(null);
   const [remember, setRemember] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
 
-  const handleGoogleSuccess = (auth: AuthResponse) => {
+  const handleGoogleSuccess = (result: GoogleAuthResult) => {
     setError(null);
-    completeAuth(auth, remember);
+    if ('pending' in result) {
+      setSubmitted(true);
+      return;
+    }
+    // An existing, already-approved owner used "Sign up with Google" —
+    // treat it the same as signing in.
+    completeAuth(result, remember);
     navigate('/', { replace: true });
   };
 
@@ -70,12 +77,36 @@ export function Signup() {
   const onSubmit = async (values: SignupForm) => {
     setError(null);
     try {
-      await registerFn(values, remember);
-      navigate('/', { replace: true });
+      await registerFn(values);
+      setSubmitted(true);
     } catch (err) {
       setError(getErrorMessage(err));
     }
   };
+
+  if (submitted) {
+    return (
+      <div className="w-full">
+        <AuthCard logo={<Logo tone="ink" markSize={40} />} eyebrow="Request submitted" title="You're on the list">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-moss-100 text-moss-600">
+              <MailCheck size={26} />
+            </span>
+            <p className="text-sm leading-relaxed text-ink-600">
+              A Portico admin reviews every new workspace before it goes live.
+              We'll email you the moment yours is approved — usually quick.
+            </p>
+            <Link
+              to="/login"
+              className="mt-2 text-sm font-medium text-brass-700 transition-colors duration-hover ease-brand hover:text-brass-800"
+            >
+              Back to sign in
+            </Link>
+          </div>
+        </AuthCard>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">

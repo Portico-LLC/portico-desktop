@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { openGooglePopup, type GoogleAuthRole } from '@/lib/googleAuth';
-import type { AuthResponse } from '@/lib/types';
+import { openGooglePopup, type GoogleAuthRole, type GoogleAuthResult } from '@/lib/googleAuth';
 import { cn } from '@/lib/utils';
 
 interface GoogleButtonProps {
   role: GoogleAuthRole;
   inviteToken?: string;
   label?: string;
-  onSuccess: (auth: AuthResponse) => void;
+  onSuccess: (result: GoogleAuthResult) => void;
   onError: (message: string) => void;
   className?: string;
 }

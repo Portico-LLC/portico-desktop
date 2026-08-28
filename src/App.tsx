@@ -8,6 +8,9 @@ import { CommandPaletteProvider } from '@/components/CommandPaletteProvider';
 import { ActionToast } from '@/components/ActionToast';
 import { Layout } from '@/components/Layout';
 import { ProtectedRoute, ClientProtectedRoute, OwnerOnlyRoute } from '@/components/ProtectedRoute';
+import { ModuleGuard } from '@/components/ModuleGuard';
+import { SuperAdminRoute } from '@/components/SuperAdminRoute';
+import { SuperAdminLayout } from '@/components/super-admin/SuperAdminLayout';
 import { AuthLayout } from '@/components/AuthLayout';
 import { ElectronAuthLayout } from '@/components/ElectronAuthLayout';
 import { ClientLayout } from '@/components/ClientLayout';
@@ -41,6 +44,10 @@ import { Terms } from '@/pages/legal/Terms';
 import { Privacy } from '@/pages/legal/Privacy';
 import { Panel } from '@/pages/Panel';
 import { SourcePicker } from '@/pages/SourcePicker';
+import { SuperAdminLogin } from '@/pages/super-admin/SuperAdminLogin';
+import { Companies as SuperAdminCompanies } from '@/pages/super-admin/Companies';
+import { CompanyDetail as SuperAdminCompanyDetail } from '@/pages/super-admin/CompanyDetail';
+import { SignupRequests as SuperAdminSignupRequests } from '@/pages/super-admin/SignupRequests';
 import { isElectron } from '@/lib/isElectron';
 
 const AuthWrapper = isElectron ? ElectronAuthLayout : AuthLayout;
@@ -128,31 +135,60 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/pulse" element={<Pulse />} />
               <Route path="/inbox" element={<Inbox />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/tasks" element={<Tasks />} />
-              <Route path="/team-chat" element={<TeamChat />} />
-              <Route path="/vault" element={<Vault />} />
-              <Route
-                path="/documents"
-                element={
-                  <Suspense fallback={<LazyPageFallback />}>
-                    <Documents />
-                  </Suspense>
-                }
-              />
+              <Route element={<ModuleGuard module="projects" />}>
+                <Route path="/projects" element={<Projects />} />
+              </Route>
+              <Route element={<ModuleGuard module="tasks" />}>
+                <Route path="/tasks" element={<Tasks />} />
+              </Route>
+              <Route element={<ModuleGuard module="teamChat" />}>
+                <Route path="/team-chat" element={<TeamChat />} />
+              </Route>
+              <Route element={<ModuleGuard module="vault" />}>
+                <Route path="/vault" element={<Vault />} />
+              </Route>
+              <Route element={<ModuleGuard module="documents" />}>
+                <Route
+                  path="/documents"
+                  element={
+                    <Suspense fallback={<LazyPageFallback />}>
+                      <Documents />
+                    </Suspense>
+                  }
+                />
+              </Route>
               <Route path="/settings" element={<Settings />} />
 
               <Route element={<OwnerOnlyRoute />}>
-                <Route path="/calendar" element={<Calendar />} />
-                <Route path="/brain" element={<Brain />} />
-                <Route path="/brain/graph" element={<Brain />} />
-                <Route path="/automations" element={<Automations />} />
-                <Route path="/automations/:id" element={<AutomationBuilder />} />
+                <Route element={<ModuleGuard module="calendar" />}>
+                  <Route path="/calendar" element={<Calendar />} />
+                </Route>
+                <Route element={<ModuleGuard module="brain" />}>
+                  <Route path="/brain" element={<Brain />} />
+                  <Route path="/brain/graph" element={<Brain />} />
+                </Route>
+                <Route element={<ModuleGuard module="automations" />}>
+                  <Route path="/automations" element={<Automations />} />
+                  <Route path="/automations/:id" element={<AutomationBuilder />} />
+                </Route>
                 <Route path="/clients" element={<Clients />} />
-                <Route path="/invoices" element={<Invoices />} />
+                <Route element={<ModuleGuard module="invoices" />}>
+                  <Route path="/invoices" element={<Invoices />} />
+                </Route>
                 <Route path="/team" element={<Team />} />
-                <Route path="/project-templates" element={<ProjectTemplates />} />
+                <Route element={<ModuleGuard module="projectTemplates" />}>
+                  <Route path="/project-templates" element={<ProjectTemplates />} />
+                </Route>
               </Route>
+            </Route>
+          </Route>
+
+          <Route path="/super-admin/login" element={<SuperAdminLogin />} />
+          <Route element={<SuperAdminRoute />}>
+            <Route element={<SuperAdminLayout />}>
+              <Route path="/super-admin" element={<SuperAdminCompanies />} />
+              <Route path="/super-admin/companies/:id" element={<SuperAdminCompanyDetail />} />
+              <Route path="/super-admin/requests" element={<SuperAdminSignupRequests />} />
             </Route>
           </Route>
 

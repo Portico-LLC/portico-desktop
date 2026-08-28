@@ -8,6 +8,7 @@ import { AlertCircle, Building2 } from 'lucide-react';
 import { api, getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import type { AuthResponse, InvitationPreview } from '@/lib/types';
+import type { GoogleAuthResult } from '@/lib/googleAuth';
 import { AuthCard } from '@/components/auth/AuthCard';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 import { PasswordInput } from '@/components/auth/PasswordInput';
@@ -50,8 +51,12 @@ export function AcceptInvite() {
     formState: { errors },
   } = useForm<AcceptForm>({ resolver: zodResolver(acceptSchema) });
 
-  const finish = (auth: AuthResponse) => {
-    completeAuth(auth);
+  const finish = (result: GoogleAuthResult) => {
+    // Accepting an invite always resolves an existing invitation record on
+    // the backend — it never takes the brand-new-owner "pending approval"
+    // path a plain signup can, so this is always a real AuthResponse here.
+    if ('pending' in result) return;
+    completeAuth(result as AuthResponse);
     navigate(invite?.type === 'client' ? '/portal' : '/', { replace: true });
   };
 

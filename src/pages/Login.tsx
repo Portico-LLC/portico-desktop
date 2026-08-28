@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
 import { getErrorMessage } from '@/lib/api';
-import type { AuthResponse } from '@/lib/types';
+import type { GoogleAuthResult } from '@/lib/googleAuth';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -40,11 +40,16 @@ export function Login() {
   const isLoading = useAuthStore((s) => s.isLoading);
   const [mode, setMode] = useState<LoginMode>('studio');
   const [error, setError] = useState<string | null>(null);
+  const [pendingNotice, setPendingNotice] = useState(false);
   const [remember, setRemember] = useState(true);
 
-  const handleGoogleSuccess = (auth: AuthResponse) => {
+  const handleGoogleSuccess = (result: GoogleAuthResult) => {
     setError(null);
-    completeAuth(auth, remember);
+    if ('pending' in result) {
+      setPendingNotice(true);
+      return;
+    }
+    completeAuth(result, remember);
     navigate(mode === 'client' ? '/portal' : '/', { replace: true });
   };
 
@@ -172,6 +177,13 @@ export function Login() {
             />
             Keep me signed in
           </label>
+
+          {pendingNotice && (
+            <div className="flex animate-fade-up items-start gap-2.5 rounded-md border border-moss-500/30 bg-moss-100/60 px-3.5 py-3 text-sm text-moss-700">
+              <ShieldCheck size={16} className="mt-0.5 flex-shrink-0" />
+              <span>Your workspace request was submitted — we'll email you once it's approved.</span>
+            </div>
+          )}
 
           {error && (
             <div className="flex animate-fade-up items-start gap-2.5 rounded-md border border-terracotta-500/30 bg-terracotta-100/60 px-3.5 py-3 text-sm text-terracotta-600">

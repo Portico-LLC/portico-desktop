@@ -19,7 +19,20 @@ function clearAuthStorage() {
   }
 }
 
+// Super Admin is a fully separate credential space (its own store, its own
+// localStorage keys — see store/superAdminAuth.ts) — these requests must
+// never carry a studio Bearer token, and vice versa.
+function isSuperAdminRoute(url?: string): boolean {
+  if (!url) return false;
+  return url.includes('/super-admin') || url.includes('/auth/super-admin-login');
+}
+
 api.interceptors.request.use((config) => {
+  if (isSuperAdminRoute(config.url)) {
+    const token = localStorage.getItem('portico_super_admin_token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  }
   const token = readToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -36,6 +49,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      if (isSuperAdminRoute(error.config?.url)) {
+        localStorage.removeItem('portico_super_admin_token');
+        localStorage.removeItem('portico_super_admin_user');
+        if (window.location.pathname !== '/super-admin/login') {
+          window.location.href = '/super-admin/login';
+        }
+        return Promise.reject(error);
+      }
+
       const isAuthRoute = error.config?.url?.includes('/auth/');
       if (!isAuthRoute) {
         clearAuthStorage();

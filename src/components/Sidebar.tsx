@@ -30,11 +30,16 @@ import { useSidebar } from './SidebarContext';
 import { useAuthStore } from '@/store/auth';
 import { useCommandPaletteStore } from '@/store/commandPalette';
 import { BrandMark } from '@/components/brand/BrandMark';
+import type { CompanyModule } from '@/lib/types';
 
 interface NavItem {
   label: string;
   icon: React.ReactNode;
   href: string;
+  /** Omit for always-on core account items (Dashboard, Clients, Team, ...).
+   *  Set for a real toggleable product module — a Super Admin can disable
+   *  these per company, and this item then drops out of the nav. */
+  module?: CompanyModule;
 }
 
 interface NavSection {
@@ -49,32 +54,32 @@ const ownerNavSections: NavSection[] = [
       { label: 'Dashboard', icon: <Home size={18} />, href: '/' },
       { label: 'Pulse', icon: <Activity size={18} />, href: '/pulse' },
       { label: 'Inbox', icon: <Inbox size={18} />, href: '/inbox' },
-      { label: 'Calendar', icon: <CalendarDays size={18} />, href: '/calendar' },
+      { label: 'Calendar', icon: <CalendarDays size={18} />, href: '/calendar', module: 'calendar' },
     ],
   },
   {
     label: 'Work',
     items: [
-      { label: 'Projects', icon: <Briefcase size={18} />, href: '/projects' },
-      { label: 'Tasks', icon: <CheckSquare size={18} />, href: '/tasks' },
-      { label: 'Templates', icon: <LayoutTemplate size={18} />, href: '/project-templates' },
-      { label: 'Automations', icon: <Workflow size={18} />, href: '/automations' },
+      { label: 'Projects', icon: <Briefcase size={18} />, href: '/projects', module: 'projects' },
+      { label: 'Tasks', icon: <CheckSquare size={18} />, href: '/tasks', module: 'tasks' },
+      { label: 'Templates', icon: <LayoutTemplate size={18} />, href: '/project-templates', module: 'projectTemplates' },
+      { label: 'Automations', icon: <Workflow size={18} />, href: '/automations', module: 'automations' },
     ],
   },
   {
     label: 'Clients',
     items: [
       { label: 'Clients', icon: <Users size={18} />, href: '/clients' },
-      { label: 'Invoices', icon: <FileText size={18} />, href: '/invoices' },
+      { label: 'Invoices', icon: <FileText size={18} />, href: '/invoices', module: 'invoices' },
     ],
   },
   {
     label: 'Collaborate',
     items: [
-      { label: 'Messages', icon: <MessageSquare size={18} />, href: '/team-chat' },
-      { label: 'Brain', icon: <Brain size={18} />, href: '/brain' },
-      { label: 'Vault', icon: <Shield size={18} />, href: '/vault' },
-      { label: 'Documents', icon: <FileStack size={18} />, href: '/documents' },
+      { label: 'Messages', icon: <MessageSquare size={18} />, href: '/team-chat', module: 'teamChat' },
+      { label: 'Brain', icon: <Brain size={18} />, href: '/brain', module: 'brain' },
+      { label: 'Vault', icon: <Shield size={18} />, href: '/vault', module: 'vault' },
+      { label: 'Documents', icon: <FileStack size={18} />, href: '/documents', module: 'documents' },
     ],
   },
   {
@@ -95,16 +100,16 @@ const employeeNavSections: NavSection[] = [
   {
     label: 'Work',
     items: [
-      { label: 'Projects', icon: <Briefcase size={18} />, href: '/projects' },
-      { label: 'Tasks', icon: <CheckSquare size={18} />, href: '/tasks' },
+      { label: 'Projects', icon: <Briefcase size={18} />, href: '/projects', module: 'projects' },
+      { label: 'Tasks', icon: <CheckSquare size={18} />, href: '/tasks', module: 'tasks' },
     ],
   },
   {
     label: 'Collaborate',
     items: [
-      { label: 'Messages', icon: <MessageSquare size={18} />, href: '/team-chat' },
-      { label: 'Vault', icon: <Shield size={18} />, href: '/vault' },
-      { label: 'Documents', icon: <FileStack size={18} />, href: '/documents' },
+      { label: 'Messages', icon: <MessageSquare size={18} />, href: '/team-chat', module: 'teamChat' },
+      { label: 'Vault', icon: <Shield size={18} />, href: '/vault', module: 'vault' },
+      { label: 'Documents', icon: <FileStack size={18} />, href: '/documents', module: 'documents' },
     ],
   },
 ];
@@ -116,8 +121,22 @@ export function Sidebar() {
   const navigate = useNavigate();
   const role = useAuthStore((s) => s.role);
   const logout = useAuthStore((s) => s.logout);
+  const enabledModules = useAuthStore((s) => s.user?.enabledModules);
   const openCommandPalette = useCommandPaletteStore((s) => s.setOpen);
-  const sections = role === 'employee' ? employeeNavSections : ownerNavSections;
+  // Employee sessions don't currently carry the owner's enabledModules (the
+  // Employee entity/login response has no such field) — only the owner's own
+  // session is gated for now; an employee's nav shows every module until
+  // that's plumbed through too.
+  const baseSections = role === 'employee' ? employeeNavSections : ownerNavSections;
+  const sections =
+    role === 'user' && enabledModules
+      ? baseSections
+          .map((section) => ({
+            ...section,
+            items: section.items.filter((item) => !item.module || enabledModules.includes(item.module)),
+          }))
+          .filter((section) => section.items.length > 0)
+      : baseSections;
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const isItemActive = (item: NavItem) =>

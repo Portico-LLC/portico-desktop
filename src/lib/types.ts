@@ -1,3 +1,20 @@
+// Keep in sync with COMPANY_MODULES in portico-backend/src/modules/auth/user.entity.ts.
+export const COMPANY_MODULES = [
+  'projects',
+  'tasks',
+  'teamChat',
+  'documents',
+  'vault',
+  'calendar',
+  'automations',
+  'brain',
+  'invoices',
+  'projectTemplates',
+] as const;
+
+export type CompanyModule = (typeof COMPANY_MODULES)[number];
+export type CompanyApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 export interface User {
   id: string;
   email: string;
@@ -12,6 +29,8 @@ export interface User {
   hasPassword?: boolean;
   googleId?: string;
   createdAt?: string;
+  approvalStatus?: CompanyApprovalStatus;
+  enabledModules?: CompanyModule[];
 }
 
 export type InvitationType = 'employee' | 'client';

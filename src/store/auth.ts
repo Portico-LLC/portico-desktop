@@ -20,7 +20,7 @@ interface AuthState {
     firstName: string;
     lastName: string;
     company?: string;
-  }, remember?: boolean) => Promise<void>;
+  }) => Promise<void>;
   logout: () => void;
   hydrate: () => void;
   updateProfile: (updates: { firstName?: string; lastName?: string; company?: string; phone?: string }) => Promise<void>;
@@ -112,12 +112,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  register: async (payload, remember = true) => {
+  // Registering no longer logs the requester in — the account starts
+  // 'pending' until a super admin approves it (see UserService.register on
+  // the backend). This resolves once the request is submitted; the caller
+  // shows a "request submitted" state rather than navigating anywhere.
+  register: async (payload) => {
     set({ isLoading: true });
     try {
-      const { data } = await api.post<AuthResponse>('/auth/register', payload);
-      const role = persist(data.accessToken, data.user, remember);
-      set({ user: data.user, token: data.accessToken, role, isAuthenticated: true });
+      await api.post('/auth/register', payload);
     } finally {
       set({ isLoading: false });
     }

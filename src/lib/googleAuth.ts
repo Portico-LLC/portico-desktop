@@ -16,7 +16,9 @@ interface GoogleAuthOptions {
  * http(s) "authorized JavaScript origin" — which the packaged Electron app's
  * file:// origin can never satisfy.
  */
-export function openGooglePopup({ role, inviteToken }: GoogleAuthOptions): Promise<AuthResponse> {
+export type GoogleAuthResult = AuthResponse | { pending: true };
+
+export function openGooglePopup({ role, inviteToken }: GoogleAuthOptions): Promise<GoogleAuthResult> {
   return new Promise((resolve, reject) => {
     const nonce = crypto.randomUUID();
     const params = new URLSearchParams({ role, nonce });
@@ -46,13 +48,17 @@ export function openGooglePopup({ role, inviteToken }: GoogleAuthOptions): Promi
     };
 
     function onMessage(event: MessageEvent) {
-      const data = event.data as { nonce?: string; error?: string; accessToken?: string; user?: AuthResponse['user'] } | null;
+      const data = event.data as
+        | { nonce?: string; error?: string; accessToken?: string; user?: AuthResponse['user']; pending?: boolean }
+        | null;
       if (!data || typeof data !== 'object' || data.nonce !== nonce) return;
 
       settled = true;
       cleanup();
       if (data.error) {
         reject(new Error(data.error));
+      } else if (data.pending) {
+        resolve({ pending: true });
       } else if (data.accessToken && data.user) {
         resolve({ accessToken: data.accessToken, user: data.user });
       } else {
