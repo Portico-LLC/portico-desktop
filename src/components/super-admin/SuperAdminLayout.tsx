@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Building2, ShieldCheck, LogOut, Inbox } from 'lucide-react';
+import { Building2, ShieldCheck, LogOut, Inbox, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSuperAdminAuthStore } from '@/store/superAdminAuth';
 import { BrandMark } from '@/components/brand/BrandMark';
@@ -7,6 +7,7 @@ import { BrandMark } from '@/components/brand/BrandMark';
 const NAV = [
   { label: 'Companies', href: '/super-admin', icon: Building2, end: true },
   { label: 'Signup Requests', href: '/super-admin/requests', icon: Inbox },
+  { label: 'Inquiries', href: '/super-admin/inquiries', icon: MessageSquare },
 ];
 
 export function SuperAdminLayout() {

@@ -979,3 +979,16 @@ export interface DoodleMatchEndPayload {
   roomId: string;
   players: { seat: number; placement?: number; won: boolean; score: number; roundsWon: number }[];
 }
+
+export type InquiryStatus = 'new' | 'replied' | 'archived';
+
+export interface Inquiry {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  status: InquiryStatus;
+  replyMessage: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+}

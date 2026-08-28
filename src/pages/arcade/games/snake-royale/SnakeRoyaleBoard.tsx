@@ -57,6 +57,65 @@ interface Particle {
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+interface ThemeColors {
+  bg: string;
+  surfaceMuted: string;
+  gridLine: string;
+  danger: string;
+  dangerSoft: string;
+  accent: string;
+}
+
+/** Reads the resolved CSS custom properties once. `getComputedStyle` forces a style recalc,
+ *  so this is only ever called on mount and on a theme change — never inside the render
+ *  loop, which was the main source of the reported frame drops/"lag" on lower-end devices. */
+function readThemeColors(): ThemeColors {
+  const styles = getComputedStyle(document.documentElement);
+  return {
+    bg: styles.getPropertyValue('--surface').trim(),
+    surfaceMuted: styles.getPropertyValue('--surface-muted').trim(),
+    gridLine: styles.getPropertyValue('--border').trim(),
+    danger: styles.getPropertyValue('--danger').trim(),
+    dangerSoft: styles.getPropertyValue('--danger-soft').trim(),
+    accent: styles.getPropertyValue('--accent').trim(),
+  };
+}
+
+interface GridCache {
+  size: number;
+  grid: number;
+  color: string;
+  canvas: HTMLCanvasElement;
+}
+
+/** The grid used to be re-stroked line-by-line (132 `stroke()` calls) every animation frame.
+ *  It only ever changes when the canvas is resized, the round's grid size changes, or the
+ *  theme toggles — so it's rendered once to an offscreen canvas and just blitted every
+ *  frame after that. */
+function getGridCanvas(cache: GridCache | null, canvasSize: number, gridSize: number, dpr: number, color: string): GridCache {
+  if (cache && cache.size === canvasSize && cache.grid === gridSize && cache.color === color) return cache;
+  const off = document.createElement('canvas');
+  off.width = canvasSize * dpr;
+  off.height = canvasSize * dpr;
+  const octx = off.getContext('2d')!;
+  octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cellSize = canvasSize / gridSize;
+  octx.strokeStyle = color;
+  octx.globalAlpha = 0.35;
+  octx.lineWidth = 1;
+  for (let i = 0; i <= gridSize; i++) {
+    octx.beginPath();
+    octx.moveTo(i * cellSize, 0);
+    octx.lineTo(i * cellSize, canvasSize);
+    octx.stroke();
+    octx.beginPath();
+    octx.moveTo(0, i * cellSize);
+    octx.lineTo(canvasSize, i * cellSize);
+    octx.stroke();
+  }
+  return { size: canvasSize, grid: gridSize, color, canvas: off };
+}
+
 function spawnBurst(particles: Particle[], center: GridPoint, color: string, now: number, count: number, speed: number, life: number) {
   for (let i = 0; i < count; i++) {
     const angle = (i / count) * Math.PI * 2 + Math.random() * 0.6;
@@ -104,6 +163,19 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
   const processedDeathCountRef = useRef(0);
   const shakeRef = useRef({ amount: 0 });
   const rafRef = useRef<number | null>(null);
+  // Resolved CSS colors + the cached grid canvas — both read/rebuilt off the hot path, see
+  // `readThemeColors`/`getGridCanvas` above.
+  const themeColorsRef = useRef<ThemeColors>(readThemeColors());
+  const gridCacheRef = useRef<GridCache | null>(null);
+
+  // The only place `getComputedStyle` runs after mount: a real theme toggle, not every frame.
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      themeColorsRef.current = readThemeColors();
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Flash the round number briefly on every new round.
   useEffect(() => {
@@ -191,12 +263,8 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
       const tickMs = roundStart?.tickMs ?? 90;
       const cellSize = canvasSize / gridSize;
       const seatColors = resolveSeatColorsHex();
-      const styles = getComputedStyle(document.documentElement);
-      const bg = styles.getPropertyValue('--surface').trim();
-      const gridLine = styles.getPropertyValue('--border').trim();
-      const danger = styles.getPropertyValue('--danger').trim();
-      const dangerSoft = styles.getPropertyValue('--danger-soft').trim();
-      const accent = styles.getPropertyValue('--accent').trim();
+      const { bg, surfaceMuted, gridLine, danger, dangerSoft, accent } = themeColorsRef.current;
+      gridCacheRef.current = getGridCanvas(gridCacheRef.current, canvasSize, gridSize, dpr, gridLine);
 
       // One-off events for a newly-arrived tick: pickup-eaten bursts, and re-anchoring my
       // own predicted head to the server's now-confirmed position for this tick.
@@ -257,23 +325,16 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
       ctx.save();
       ctx.translate(shakeX, shakeY);
 
-      // Background + grid.
-      ctx.fillStyle = bg;
+      // Background vignette + the cached grid, blitted in one draw instead of re-stroked.
+      const vignette = ctx.createRadialGradient(
+        canvasSize / 2, canvasSize / 2, canvasSize * 0.12,
+        canvasSize / 2, canvasSize / 2, canvasSize * 0.72,
+      );
+      vignette.addColorStop(0, surfaceMuted || bg);
+      vignette.addColorStop(1, bg);
+      ctx.fillStyle = vignette;
       ctx.fillRect(-4, -4, canvasSize + 8, canvasSize + 8);
-      ctx.strokeStyle = gridLine;
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = 1;
-      for (let i = 0; i <= gridSize; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * cellSize, 0);
-        ctx.lineTo(i * cellSize, canvasSize);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, i * cellSize);
-        ctx.lineTo(canvasSize, i * cellSize);
-        ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
+      ctx.drawImage(gridCacheRef.current.canvas, 0, 0, canvasSize, canvasSize);
 
       // Shrink-zone overlay (danger margin outside the current playable bounds).
       const vb = visualBoundsRef.current;
@@ -292,12 +353,24 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
       ctx.lineWidth = 2;
       ctx.strokeRect(left, top, right - left, bottom - top);
 
-      // Pickups — gentle pulse.
+      // Pickups — a glowing orb (radial falloff + a bright core) instead of a flat dot,
+      // still gently pulsing.
       const pulse = 0.75 + Math.sin(now / 220) * 0.25;
-      ctx.fillStyle = accent;
       for (const p of current.pickups) {
+        const cx = (p.x + 0.5) * cellSize;
+        const cy = (p.y + 0.5) * cellSize;
+        const r = cellSize * 0.34 * pulse;
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        glow.addColorStop(0, accent);
+        glow.addColorStop(0.55, accent);
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
         ctx.beginPath();
-        ctx.arc((p.x + 0.5) * cellSize, (p.y + 0.5) * cellSize, cellSize * 0.22 * pulse, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, cellSize * 0.09, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -458,7 +531,14 @@ function drawSnake(
     } else {
       ctx.rect(x, y, size, size);
     }
+    // Soft glow on the head only — cheap (one shadowed fill per snake per frame) and it's
+    // what makes the head read as the "live" end of the snake against the rest of the body.
+    if (i === 0 && alive) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = isMine ? 16 : 9;
+    }
     ctx.fill();
+    ctx.shadowBlur = 0;
     if (isMine && i === 0) {
       ctx.strokeStyle = 'rgba(255,255,255,0.9)';
       ctx.lineWidth = 1.5;

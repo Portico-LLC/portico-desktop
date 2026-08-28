@@ -49,6 +49,7 @@ import { SuperAdminLogin } from '@/pages/super-admin/SuperAdminLogin';
 import { Companies as SuperAdminCompanies } from '@/pages/super-admin/Companies';
 import { CompanyDetail as SuperAdminCompanyDetail } from '@/pages/super-admin/CompanyDetail';
 import { SignupRequests as SuperAdminSignupRequests } from '@/pages/super-admin/SignupRequests';
+import { Inquiries as SuperAdminInquiries } from '@/pages/super-admin/Inquiries';
 import { isElectron } from '@/lib/isElectron';
 
 const AuthWrapper = isElectron ? ElectronAuthLayout : AuthLayout;
@@ -232,6 +233,7 @@ export default function App() {
               <Route path="/super-admin" element={<SuperAdminCompanies />} />
               <Route path="/super-admin/companies/:id" element={<SuperAdminCompanyDetail />} />
               <Route path="/super-admin/requests" element={<SuperAdminSignupRequests />} />
+              <Route path="/super-admin/inquiries" element={<SuperAdminInquiries />} />
             </Route>
           </Route>
 
