@@ -89,7 +89,7 @@ export function useSnakeRoyaleSocket({ roomId, onMatchEnd }: UseSnakeRoyaleSocke
     socket.on('snake:match:end', onMatchEndEvent);
     // Must come after every socket.on() above — asks the server to replay the current round
     // (covers a client that mounted after the engine's first broadcast, or a page refresh
-    // mid-match). Snake Royale mostly self-heals within one ~67ms tick regardless, but this
+    // mid-match). Snake Royale mostly self-heals within one ~90ms tick regardless, but this
     // closes the gap outright instead of relying on that.
     socket.emit('game:resume', { roomId });
     return () => {

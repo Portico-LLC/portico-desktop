@@ -22,6 +22,9 @@ export interface GuessFeedEntry {
 
 interface UseDoodleRelaySocketOptions {
   roomId: string;
+  /** Needed so `handleRoundStart` can tell whether *this* client is the artist — see the
+   *  comment on `mySeatIndexRef` below. */
+  mySeatIndex: number | null;
   /** Strokes/clears are forwarded directly to the caller (the canvas draws them
    *  imperatively) rather than round-tripping through React state — ink is drawn once and
    *  persists, so there's nothing to "re-render from," unlike Snake Royale's per-tick
@@ -31,7 +34,7 @@ interface UseDoodleRelaySocketOptions {
   onMatchEnd?: (payload: DoodleMatchEndPayload) => void;
 }
 
-export function useDoodleRelaySocket({ roomId, onStroke, onClear, onMatchEnd }: UseDoodleRelaySocketOptions) {
+export function useDoodleRelaySocket({ roomId, mySeatIndex, onStroke, onClear, onMatchEnd }: UseDoodleRelaySocketOptions) {
   const [roundStart, setRoundStart] = useState<DoodleRoundStartPayload | null>(null);
   const [myWord, setMyWord] = useState<string | null>(null);
   const [reveal, setReveal] = useState<DoodleRoundRevealPayload | null>(null);
@@ -44,6 +47,12 @@ export function useDoodleRelaySocket({ roomId, onStroke, onClear, onMatchEnd }: 
   onClearRef.current = onClear;
   const onMatchEndRef = useRef(onMatchEnd);
   onMatchEndRef.current = onMatchEnd;
+  // The server sends the artist their private word (`doodle:round:start:artist`) immediately
+  // before the public `doodle:round:start` broadcast, and socket.io delivers both in that order
+  // — so without this guard, the public handler's `setMyWord(null)` below always stomped the
+  // word the artist handler had just set, leaving the artist with nothing to draw every round.
+  const mySeatIndexRef = useRef(mySeatIndex);
+  mySeatIndexRef.current = mySeatIndex;
 
   useEffect(() => {
     const socket = getArcadeSocket();
@@ -52,7 +61,9 @@ export function useDoodleRelaySocket({ roomId, onStroke, onClear, onMatchEnd }: 
     const handleRoundStart = (payload: DoodleRoundStartPayload) => {
       if (payload.roomId !== roomId) return;
       setRoundStart(payload);
-      setMyWord(null);
+      // Only clear when I'm not this round's artist — if I am, `doodle:round:start:artist`
+      // already delivered my word a moment earlier and it must survive this broadcast.
+      if (payload.artistSeat !== mySeatIndexRef.current) setMyWord(null);
       setReveal(null);
       setGuessFeed([]);
       setMyLastResult(null);

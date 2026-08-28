@@ -35,6 +35,7 @@ export function DoodleRelayStage({ room, onMatchEnd }: DoodleRelayStageProps) {
 
   const { roundStart, myWord, reveal, guessFeed, myLastResult, sendStroke, sendClear, sendGuess } = useDoodleRelaySocket({
     roomId: room.id,
+    mySeatIndex,
     onStroke: (payload: DoodleStrokePayload) => {
       if (myStrokeIdsRef.current.has(payload.strokeId)) {
         if (payload.phase === 'end') myStrokeIdsRef.current.delete(payload.strokeId);

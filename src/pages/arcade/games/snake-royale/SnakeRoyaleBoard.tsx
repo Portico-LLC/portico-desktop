@@ -90,6 +90,13 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
 
   // ---- Local prediction / render-loop refs (imperative, not React state) ----
   const myDirectionRef = useRef<Direction>('up');
+  // Where my own snake's head is drawn: advanced locally every frame using `myDirectionRef`
+  // rather than waiting for the server's next tick, so turning feels instant. Re-anchored to
+  // the server's confirmed head at the start of every tick (see the `current.tick !==
+  // lastProcessedTickRef.current` block below), so drift can never exceed one tick's worth of
+  // movement and any authoritative correction (collision, growth, a rejected move) self-heals
+  // within ~1 tick without a visible snap in the common case.
+  const predictedHeadRef = useRef<GridPoint | null>(null);
   const particlesRef = useRef<Particle[]>([]);
   const visualBoundsRef = useRef<ArenaBounds | null>(null);
   const lastFrameAtRef = useRef<number>(performance.now());
@@ -108,6 +115,9 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
     // to reset alongside it, or round 2's first few deaths would silently produce no
     // burst/shake until the stale count from round 1 is exceeded again.
     processedDeathCountRef.current = 0;
+    // Drop any predicted head left over from the previous round so the new round seeds fresh
+    // from the first confirmed snapshot instead of flashing a stale position for one frame.
+    predictedHeadRef.current = null;
     const t = setTimeout(() => setRoundBanner(null), 1400);
     return () => clearTimeout(t);
   }, [roundStart]);
@@ -178,7 +188,7 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
       const { prev, current } = bufferRef.current;
       if (!current) return;
       const gridSize = roundStart?.gridSize ?? 32;
-      const tickMs = roundStart?.tickMs ?? 67;
+      const tickMs = roundStart?.tickMs ?? 90;
       const cellSize = canvasSize / gridSize;
       const seatColors = resolveSeatColorsHex();
       const styles = getComputedStyle(document.documentElement);
@@ -188,7 +198,8 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
       const dangerSoft = styles.getPropertyValue('--danger-soft').trim();
       const accent = styles.getPropertyValue('--accent').trim();
 
-      // One-off events for a newly-arrived tick: pickup-eaten bursts.
+      // One-off events for a newly-arrived tick: pickup-eaten bursts, and re-anchoring my
+      // own predicted head to the server's now-confirmed position for this tick.
       if (current.tick !== lastProcessedTickRef.current) {
         if (prev) {
           for (const snake of current.snakes) {
@@ -198,7 +209,23 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
             }
           }
         }
+        const mySnake = current.snakes.find((s) => s.seat === mySeatIndex);
+        predictedHeadRef.current = mySnake?.alive
+          ? { x: mySnake.segments[0].x, y: mySnake.segments[0].y }
+          : null;
         lastProcessedTickRef.current = current.tick;
+      }
+      // Advance my own predicted head every frame using the freshest requested direction —
+      // this is what makes a turn appear the instant it's pressed instead of waiting for the
+      // next server round trip. Re-anchored every tick above, so it never drifts by more than
+      // one tick's worth of movement from the server's truth.
+      if (predictedHeadRef.current) {
+        const v = VECTORS[myDirectionRef.current];
+        const cellsPerMs = 1 / tickMs;
+        predictedHeadRef.current = {
+          x: predictedHeadRef.current.x + v.x * cellsPerMs * dt,
+          y: predictedHeadRef.current.y + v.y * cellsPerMs * dt,
+        };
       }
       // Death bursts + a screen-shake if it's my own elimination.
       while (processedDeathCountRef.current < deathsRef.current.length) {
@@ -286,10 +313,8 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
           const a = prevSnake?.segments[i] ?? seg;
           return { x: lerp(a.x, seg.x, tBody), y: lerp(a.y, seg.y, tBody) };
         });
-        if (t > 1 && isMine && segs.length) {
-          const extra = Math.min(t - 1, 0.5);
-          const v = VECTORS[myDirectionRef.current];
-          segs[0] = { x: segs[0].x + v.x * extra, y: segs[0].y + v.y * extra };
+        if (isMine && predictedHeadRef.current && segs.length) {
+          segs[0] = { x: predictedHeadRef.current.x, y: predictedHeadRef.current.y };
         }
         drawSnake(ctx, segs, cellSize, color, snake.alive, isMine);
       }
