@@ -57,6 +57,14 @@ interface Particle {
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+// How fast a reconciliation error (predicted head vs. server-confirmed head) is eased out
+// once it's known, instead of snapped. Half a tick at the default 90ms rate, so a correction
+// is essentially invisible within ~2 ticks. See the tick-change block in `draw()`.
+const HEAD_RECONCILE_HALF_LIFE_MS = 45;
+// Above this, the "error" is treated as a discontinuity (reconnect/resume/backgrounded tab)
+// rather than a normal misprediction, and is hard-reset instead of eased.
+const HEAD_RECONCILE_SNAP_CELLS = 1.5;
+
 interface ThemeColors {
   bg: string;
   surfaceMuted: string;
@@ -152,10 +160,18 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
   // Where my own snake's head is drawn: advanced locally every frame using `myDirectionRef`
   // rather than waiting for the server's next tick, so turning feels instant. Re-anchored to
   // the server's confirmed head at the start of every tick (see the `current.tick !==
-  // lastProcessedTickRef.current` block below), so drift can never exceed one tick's worth of
-  // movement and any authoritative correction (collision, growth, a rejected move) self-heals
-  // within ~1 tick without a visible snap in the common case.
+  // lastProcessedTickRef.current` block below). Movement per tick is driven by `tBody` (the
+  // same clamped clock the body's interpolation uses — see `draw()`), so the head can never
+  // outrun the body's timing the way an unclamped per-frame accumulator could.
   const predictedHeadRef = useRef<GridPoint | null>(null);
+  // How much of the current tick's 1-cell movement allowance `predictedHeadRef` has already
+  // walked (mirrors `tBody`, persisted across frames so a mid-tick turn only applies to the
+  // remaining allowance instead of restarting it).
+  const predictedProgressRef = useRef(0);
+  // Rendered-minus-confirmed offset for the head, in grid units. Any authoritative correction
+  // (a rejected turn, a reconnect) is absorbed here and eased to zero over a couple of ticks
+  // instead of being applied as an instant snap.
+  const headErrorRef = useRef<GridPoint>({ x: 0, y: 0 });
   const particlesRef = useRef<Particle[]>([]);
   const visualBoundsRef = useRef<ArenaBounds | null>(null);
   const lastFrameAtRef = useRef<number>(performance.now());
@@ -190,6 +206,8 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
     // Drop any predicted head left over from the previous round so the new round seeds fresh
     // from the first confirmed snapshot instead of flashing a stale position for one frame.
     predictedHeadRef.current = null;
+    predictedProgressRef.current = 0;
+    headErrorRef.current = { x: 0, y: 0 };
     const t = setTimeout(() => setRoundBanner(null), 1400);
     return () => clearTimeout(t);
   }, [roundStart]);
@@ -265,6 +283,10 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
       const seatColors = resolveSeatColorsHex();
       const { bg, surfaceMuted, gridLine, danger, dangerSoft, accent } = themeColorsRef.current;
       gridCacheRef.current = getGridCanvas(gridCacheRef.current, canvasSize, gridSize, dpr, gridLine);
+      // Wall-clock fraction of the current tick elapsed since it was received, clamped to 1 —
+      // the same clock the body's interpolation below uses. Hoisted here because the head's
+      // per-tick movement (below) is now driven by this same value, not a separate accumulator.
+      const tBody = clamp((now - current.receivedAt) / tickMs, 0, 1);
 
       // One-off events for a newly-arrived tick: pickup-eaten bursts, and re-anchoring my
       // own predicted head to the server's now-confirmed position for this tick.
@@ -278,22 +300,51 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
           }
         }
         const mySnake = current.snakes.find((s) => s.seat === mySeatIndex);
-        predictedHeadRef.current = mySnake?.alive
-          ? { x: mySnake.segments[0].x, y: mySnake.segments[0].y }
-          : null;
+        if (mySnake?.alive) {
+          const confirmed = mySnake.segments[0];
+          // The error is measured against what was actually on screen last frame (predicted +
+          // any not-yet-decayed error), not the raw predicted position — that's what makes the
+          // rendered head continuous across this reset rather than merely close to continuous.
+          if (predictedHeadRef.current) {
+            const renderedX = predictedHeadRef.current.x + headErrorRef.current.x;
+            const renderedY = predictedHeadRef.current.y + headErrorRef.current.y;
+            const ex = renderedX - confirmed.x;
+            const ey = renderedY - confirmed.y;
+            headErrorRef.current =
+              Math.abs(ex) > HEAD_RECONCILE_SNAP_CELLS || Math.abs(ey) > HEAD_RECONCILE_SNAP_CELLS
+                ? { x: 0, y: 0 } // implausibly large — a reconnect/resume, not a normal misprediction
+                : { x: ex, y: ey };
+          } else {
+            headErrorRef.current = { x: 0, y: 0 };
+          }
+          predictedHeadRef.current = { x: confirmed.x, y: confirmed.y };
+          predictedProgressRef.current = 0;
+        } else {
+          predictedHeadRef.current = null;
+          predictedProgressRef.current = 0;
+          headErrorRef.current = { x: 0, y: 0 };
+        }
         lastProcessedTickRef.current = current.tick;
       }
       // Advance my own predicted head every frame using the freshest requested direction —
       // this is what makes a turn appear the instant it's pressed instead of waiting for the
-      // next server round trip. Re-anchored every tick above, so it never drifts by more than
-      // one tick's worth of movement from the server's truth.
+      // next server round trip. The step is `tBody` minus however much of this tick's 1-cell
+      // allowance has already been walked, so total movement per tick is capped at exactly what
+      // the body's own clamped clock allows — the head can no longer outrun a late tick the way
+      // an unclamped per-frame accumulator could. Any residual reconciliation error is eased out
+      // of `headErrorRef` on the same clock, rather than being applied as an instant snap.
       if (predictedHeadRef.current) {
-        const v = VECTORS[myDirectionRef.current];
-        const cellsPerMs = 1 / tickMs;
-        predictedHeadRef.current = {
-          x: predictedHeadRef.current.x + v.x * cellsPerMs * dt,
-          y: predictedHeadRef.current.y + v.y * cellsPerMs * dt,
-        };
+        const step = tBody - predictedProgressRef.current;
+        if (step > 0) {
+          const v = VECTORS[myDirectionRef.current];
+          predictedHeadRef.current = {
+            x: predictedHeadRef.current.x + v.x * step,
+            y: predictedHeadRef.current.y + v.y * step,
+          };
+          predictedProgressRef.current = tBody;
+        }
+        const decay = Math.pow(0.5, dt / HEAD_RECONCILE_HALF_LIFE_MS);
+        headErrorRef.current = { x: headErrorRef.current.x * decay, y: headErrorRef.current.y * decay };
       }
       // Death bursts + a screen-shake if it's my own elimination.
       while (processedDeathCountRef.current < deathsRef.current.length) {
@@ -374,10 +425,6 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
         ctx.fill();
       }
 
-      // Interpolation/extrapolation fraction for this frame.
-      const t = clamp((now - current.receivedAt) / tickMs, 0, 1.5);
-      const tBody = Math.min(t, 1);
-
       for (const snake of current.snakes) {
         const color = seatColors[snake.seat % seatColors.length];
         const isMine = snake.seat === mySeatIndex;
@@ -387,7 +434,10 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
           return { x: lerp(a.x, seg.x, tBody), y: lerp(a.y, seg.y, tBody) };
         });
         if (isMine && predictedHeadRef.current && segs.length) {
-          segs[0] = { x: predictedHeadRef.current.x, y: predictedHeadRef.current.y };
+          segs[0] = {
+            x: predictedHeadRef.current.x + headErrorRef.current.x,
+            y: predictedHeadRef.current.y + headErrorRef.current.y,
+          };
         }
         drawSnake(ctx, segs, cellSize, color, snake.alive, isMine);
       }
