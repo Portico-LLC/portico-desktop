@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getErrorMessage } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import type { AppDocument, Project } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -29,6 +30,7 @@ import {
   File as FileIcon,
   Trash2,
   Pencil,
+  Phone,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -46,7 +48,13 @@ function formatDuration(seconds?: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+// The exact tag `call-documentation-listener.service.ts` (backend) stamps onto every
+// auto-saved call summary — there's no folder concept in this module, so this tag is the
+// entirety of what makes up the "Calls" section.
+const CALL_DOC_TAG = 'Calls';
+
 function DocIcon({ doc }: { doc: AppDocument }) {
+  if (doc.kind === 'page' && doc.tags?.includes(CALL_DOC_TAG)) return <Phone size={20} className="text-moss-600" />;
   if (doc.kind === 'page') return <FileText size={20} className="text-pine-700" />;
   switch (doc.fileType) {
     case 'image':
@@ -207,10 +215,25 @@ export function Documents() {
         </div>
       </div>
 
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-400" />
-          <Input placeholder="Search documents..." className="pl-10 w-72" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-400" />
+            <Input placeholder="Search documents..." className="pl-10 w-72" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFilters((f) => ({ ...f, tag: f.tag === CALL_DOC_TAG ? '' : CALL_DOC_TAG }))}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-hover ease-brand',
+              filters.tag === CALL_DOC_TAG
+                ? 'border-pine-900 bg-pine-900 text-bone-50'
+                : 'border-ink-200 bg-bone-50 text-ink-600 hover:border-ink-300 hover:bg-ink-50',
+            )}
+          >
+            <Phone size={13} />
+            Calls
+          </button>
         </div>
         <DocumentFilterBar filters={filters} onChange={setFilters} projects={projects} availableTags={availableTags} />
       </div>
