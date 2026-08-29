@@ -24,6 +24,7 @@ import {
   LayoutTemplate,
   CalendarDays,
   Gamepad2,
+  Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motionTransition, springs } from '@/lib/motion/springs';
@@ -54,6 +55,7 @@ const ownerNavSections: NavSection[] = [
     items: [
       { label: 'Dashboard', icon: <Home size={18} />, href: '/' },
       { label: 'Pulse', icon: <Activity size={18} />, href: '/pulse' },
+      { label: 'Radar', icon: <Gauge size={18} />, href: '/radar', module: 'radar' },
       { label: 'Inbox', icon: <Inbox size={18} />, href: '/inbox' },
       { label: 'Calendar', icon: <CalendarDays size={18} />, href: '/calendar', module: 'calendar' },
     ],
@@ -96,6 +98,7 @@ const employeeNavSections: NavSection[] = [
     items: [
       { label: 'Dashboard', icon: <Home size={18} />, href: '/' },
       { label: 'Pulse', icon: <Activity size={18} />, href: '/pulse' },
+      { label: 'Radar', icon: <Gauge size={18} />, href: '/radar', module: 'radar' },
       { label: 'Inbox', icon: <Inbox size={18} />, href: '/inbox' },
     ],
   },

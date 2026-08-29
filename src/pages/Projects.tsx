@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, cleanPayload } from '@/lib/api';
+import { numberOrUndefined } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
 import type { Project, Client } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -31,6 +32,11 @@ const projectSchema = z.object({
   progress: z.number().min(0).max(100).optional(),
   dueDate: z.string().optional(),
   clientId: z.string().optional(),
+  // Capacity & Risk Radar's schedule baseline and budget-burn input. `budget`'s empty-string-
+  // to-undefined normalization happens at `register(..., { setValueAs: numberOrUndefined })`,
+  // so an untouched field means "unset," not 0.
+  startDate: z.string().optional(),
+  budget: z.number().min(0).optional(),
 });
 type ProjectForm = z.infer<typeof projectSchema>;
 
@@ -344,6 +350,8 @@ function ProjectForm({
       progress: project?.progress ?? 0,
       dueDate: project?.dueDate ? format(new Date(project.dueDate), 'yyyy-MM-dd') : '',
       clientId: project?.clientId ?? '',
+      startDate: project?.startDate ? format(new Date(project.startDate), 'yyyy-MM-dd') : '',
+      budget: project?.budget,
     },
   });
 
@@ -386,8 +394,29 @@ function ProjectForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
+          <Label htmlFor="startDate">Start Date</Label>
+          <Input id="startDate" type="date" {...register('startDate')} />
+          <p className="text-xs text-ink-400">Defaults to the created date if left blank.</p>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="dueDate">Due Date</Label>
           <Input id="dueDate" type="date" {...register('dueDate')} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="budget">Budget</Label>
+          <Input
+            id="budget"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="Optional"
+            {...register('budget', { setValueAs: numberOrUndefined })}
+          />
+          <p className="text-xs text-ink-400">Used by Capacity &amp; Risk Radar's budget-burn figures.</p>
         </div>
 
         <div className="space-y-2">

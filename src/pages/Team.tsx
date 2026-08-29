@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, cleanPayload } from '@/lib/api';
+import { numberOrUndefined } from '@/lib/utils';
 import type { Employee, Project } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -25,6 +26,11 @@ const employeeSchema = z.object({
   phone: z.string().optional(),
   status: z.string().optional(),
   password: z.string().min(6, 'At least 6 characters').optional().or(z.literal('')),
+  // Capacity & Risk Radar inputs — the empty-string-to-undefined normalization happens at
+  // `register(..., { setValueAs: numberOrUndefined })`, so an untouched capacity field falls
+  // back to the backend's default (40) rather than becoming a literal 0.
+  weeklyCapacityHours: z.number().min(0).max(168).optional(),
+  hourlyRate: z.number().min(0).optional(),
 });
 type EmployeeForm = z.infer<typeof employeeSchema>;
 
@@ -288,6 +294,8 @@ function EmployeeFormFields({
       email: employee?.email ?? '',
       phone: employee?.phone ?? '',
       status: employee?.status ?? 'active',
+      weeklyCapacityHours: employee?.weeklyCapacityHours,
+      hourlyRate: employee?.hourlyRate,
     },
   });
 
@@ -307,6 +315,31 @@ function EmployeeFormFields({
         <Label htmlFor="emp-phone">Phone</Label>
         <Input id="emp-phone" placeholder="+1 555 0000" {...register('phone')} />
       </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="emp-capacity">Weekly capacity (hours)</Label>
+          <Input
+            id="emp-capacity"
+            type="number"
+            step="0.5"
+            min="0"
+            placeholder="40"
+            {...register('weeklyCapacityHours', { setValueAs: numberOrUndefined })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="emp-rate">Hourly rate</Label>
+          <Input
+            id="emp-rate"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="Optional"
+            {...register('hourlyRate', { setValueAs: numberOrUndefined })}
+          />
+        </div>
+      </div>
+      <p className="-mt-2 text-xs text-ink-400">Used by Capacity &amp; Risk Radar for workload and budget-burn figures. Capacity defaults to 40h/week if left blank.</p>
       <div className="space-y-2">
         <Label htmlFor="emp-password">{employee ? 'Reset Password' : 'Password'}</Label>
         <Input

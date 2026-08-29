@@ -11,6 +11,7 @@ export const COMPANY_MODULES = [
   'invoices',
   'projectTemplates',
   'games',
+  'radar',
 ] as const;
 
 export type CompanyModule = (typeof COMPANY_MODULES)[number];
@@ -120,6 +121,11 @@ export interface Employee {
   avatarUrl?: string;
   status?: string;
   projectIds: string[];
+  /** Capacity & Risk Radar planning inputs. `weeklyCapacityHours` defaults to 40 server-side
+   *  (0 is a valid, explicit "on leave" value, distinct from "unset"). `hourlyRate` is
+   *  optional — without it, no planned-cost figure can be computed for this person's work. */
+  weeklyCapacityHours?: number;
+  hourlyRate?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -171,6 +177,9 @@ export interface Task {
   assigneeId?: string;
   order: number;
   parentTaskId?: string;
+  /** Planning input for Capacity & Risk Radar — explicit, user-entered, never inferred.
+   *  `undefined`/`null` means "not estimated"; never treat as 0. */
+  estimatedHours?: number;
   createdAt: string;
   updatedAt: string;
   project?: { id: string; name: string };
@@ -222,6 +231,12 @@ export interface Project {
   status?: string;
   progress?: number;
   dueDate?: string;
+  /** Schedule baseline for Capacity & Risk Radar. Falls back to `createdAt` server-side when
+   *  unset — see the `startSource` field on radar responses. */
+  startDate?: string;
+  /** Total dollar budget, if set. 0 (the DB default) is treated as "no budget set" by Radar,
+   *  not a real $0 budget. */
+  budget?: number;
   clientId?: string;
   client?: { id: string; name: string };
   tasks?: Task[];
@@ -991,4 +1006,107 @@ export interface Inquiry {
   replyMessage: string | null;
   repliedAt: string | null;
   createdAt: string;
+}
+
+// ---- Capacity & Risk Radar ----
+// Mirrors portico-backend/src/modules/radar/radar.types.ts exactly — every figure here is a
+// deterministic function of real task/project/employee rows, never an AI estimate. A `null`
+// value always carries an `unavailableReason`; it is never coerced to 0 for display.
+
+export type RadarUnavailableReason =
+  | 'zero_capacity'
+  | 'no_estimates'
+  | 'no_dated_open_tasks'
+  | 'no_due_date'
+  | 'no_tasks'
+  | 'no_dependencies_defined'
+  | 'no_team_assigned'
+  | 'no_member_utilization'
+  | 'insufficient_data'
+  | 'no_budget_set'
+  | 'incomplete_estimates'
+  | 'missing_rates'
+  | 'project_closed';
+
+export type RadarBand = 'low' | 'moderate' | 'elevated' | 'critical';
+
+export interface RadarUtilization {
+  personId: string;
+  weekStart: string;
+  weekEnd: string;
+  basis: 'planned';
+  utilizationPct: number | null;
+  committedHours: number;
+  capacityHours: number;
+  windowTaskCount: number;
+  estimatedTaskCount: number;
+  isLowerBound: boolean;
+  undatedOpenTaskCount: number;
+  unavailableReason?: RadarUnavailableReason;
+}
+
+export interface RadarTeamRow {
+  personId: string;
+  name: string;
+  kind: 'owner' | 'employee';
+  utilization: RadarUtilization;
+}
+
+export type RadarRiskComponentKey = 'scheduleSlip' | 'progressVsElapsed' | 'blockedWork' | 'capacityStrain';
+
+export interface RadarRiskComponent {
+  key: RadarRiskComponentKey;
+  score: number | null;
+  weight: number;
+  available: boolean;
+  unavailableReason?: RadarUnavailableReason;
+  detail: Record<string, number | string | null>;
+}
+
+export interface RadarProjectRisk {
+  projectId: string;
+  status: 'scored' | 'insufficient_data' | 'not_scored';
+  score: number | null;
+  band: RadarBand | null;
+  coverage: number;
+  components: RadarRiskComponent[];
+  unavailableReason?: RadarUnavailableReason;
+}
+
+export interface RadarProjectBurn {
+  projectId: string;
+  startSource: 'startDate' | 'createdAt';
+  scheduleElapsedPct: number | null;
+  effortBurnPct: number | null;
+  effortBurnBasis: 'hours' | 'taskCount' | null;
+  burnDeltaPct: number | null;
+  manualProgressPct: number | null;
+  budgetTracked: boolean;
+  plannedCostToDate: number | null;
+  budgetBurnPct: number | null;
+  unavailableBudgetReasons: RadarUnavailableReason[];
+}
+
+export interface RadarProjectRow {
+  id: string;
+  name: string;
+  status: string;
+  risk: RadarProjectRisk;
+  burn: RadarProjectBurn;
+}
+
+export interface RadarSummary {
+  weekStart: string;
+  weekEnd: string;
+  team: RadarTeamRow[];
+  projects: RadarProjectRow[];
+  formulaVersion: string;
+  generatedAt: string;
+}
+
+export interface RadarMethodology {
+  formulaVersion: string;
+  weights: Record<RadarRiskComponentKey, number>;
+  components: { key: RadarRiskComponentKey; label: string; description: string }[];
+  notes: string[];
 }

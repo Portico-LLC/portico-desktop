@@ -20,6 +20,12 @@ export const taskSchema = z.object({
   dueDate: z.string().optional(),
   projectId: z.string().optional(),
   assigneeId: z.string().optional(),
+  // A planning input for Capacity & Risk Radar — explicit and user-entered, never inferred.
+  // The empty-string-to-undefined normalization happens at `register(..., { setValueAs })`
+  // (not here via z.preprocess, which would make zodResolver's inferred input type `unknown`
+  // and break useForm<TaskForm>'s generic) — so an untouched field means "not estimated,"
+  // never 0.
+  estimatedHours: z.number().min(0).max(1000).optional(),
 });
 
 export type TaskForm = z.infer<typeof taskSchema>;

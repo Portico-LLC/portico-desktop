@@ -20,6 +20,7 @@ import { Signup } from '@/pages/Signup';
 import { AcceptInvite } from '@/pages/AcceptInvite';
 import { Dashboard } from '@/pages/Dashboard';
 import { Pulse } from '@/pages/Pulse';
+import { Radar } from '@/pages/Radar';
 import { Inbox } from '@/pages/Inbox';
 import { Clients } from '@/pages/Clients';
 import { Projects } from '@/pages/Projects';
@@ -144,6 +145,9 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/pulse" element={<Pulse />} />
+              <Route element={<ModuleGuard module="radar" />}>
+                <Route path="/radar" element={<Radar />} />
+              </Route>
               <Route path="/inbox" element={<Inbox />} />
               <Route element={<ModuleGuard module="projects" />}>
                 <Route path="/projects" element={<Projects />} />

@@ -29,6 +29,7 @@ import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { taskSchema, type TaskForm } from '@/lib/tasks';
+import { numberOrUndefined } from '@/lib/utils';
 
 type ViewMode = 'kanban' | 'table';
 
@@ -257,6 +258,7 @@ export function Tasks() {
         dueDate: editingTask.dueDate ? editingTask.dueDate.slice(0, 10) : undefined,
         projectId: editingTask.projectId,
         assigneeId: editingTask.assigneeId,
+        estimatedHours: editingTask.estimatedHours,
       });
     } else {
       reset({});
@@ -657,6 +659,18 @@ export function Tasks() {
                 <Label htmlFor="task-due">Due Date</Label>
                 <Input id="task-due" type="date" {...register('dueDate')} />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="task-estimate">Estimated hours (planning input)</Label>
+              <Input
+                id="task-estimate"
+                type="number"
+                step="0.25"
+                min="0"
+                placeholder="e.g. 4"
+                {...register('estimatedHours', { setValueAs: numberOrUndefined })}
+              />
+              <p className="text-xs text-ink-400">Feeds Capacity &amp; Risk Radar's workload and budget-burn figures.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="task-project">Project</Label>
