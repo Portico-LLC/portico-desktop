@@ -32,10 +32,11 @@ const CRON_PRESETS: { label: string; value: string }[] = [
 
 const EVENTS_BY_ENTITY: Record<AutomationEntityType, AutomationEventName[]> = {
   task: ['task.created', 'task.updated'],
-  project: ['project.created', 'project.updated'],
+  project: ['project.created', 'project.updated', 'project.riskThresholdCrossed'],
   invoice: ['invoice.created', 'invoice.statusChanged'],
   client: [],
   message: ['client.messageReceived'],
+  employee: ['employee.overCapacity'],
 };
 
 const OPS: { value: ExpressionOp; label: string }[] = [
@@ -346,6 +347,7 @@ export function NodeConfigPanel({ node, onClose }: { node: WorkflowNodeConfig; o
                 <option value="project">A project</option>
                 <option value="invoice">An invoice</option>
                 <option value="message">A client message</option>
+                <option value="employee">A team member</option>
               </Select>
             </FieldGroup>
             <FieldGroup>

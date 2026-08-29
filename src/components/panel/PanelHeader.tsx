@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { motion } from 'framer-motion';
-import { ListChecks, Calendar, MessageSquare, FolderKanban, Shield, Video, Phone, Settings2, Minus } from 'lucide-react';
+import { ListChecks, Calendar, MessageSquare, FolderKanban, Shield, Video, Phone, Settings2, Minus, Gauge } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/brand/BrandMark';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -14,11 +14,19 @@ const noDragStyle = { WebkitAppRegion: 'no-drag' } as unknown as CSSProperties;
 
 type PanelTab = PanelPrefs['activeTab'];
 
+// h-6/w-6 (24px) + the row's gap-0.5 (2px) = 26px per tab — down from the original 28px/30px.
+// Adding a 9th tab (Radar) without this shrink plus dropping the wordmark below would push
+// this bar past even the widest 480px window preset; both changes are required together, see
+// the width note below `TAB_STEP_PX`.
+const TAB_SIZE_PX = 24;
+const TAB_STEP_PX = 26;
+
 const TABS: { id: PanelTab; label: string; icon: typeof ListChecks }[] = [
   { id: 'tasks', label: 'Tasks', icon: ListChecks },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
   { id: 'projects', label: 'Projects', icon: FolderKanban },
+  { id: 'radar', label: 'Radar', icon: Gauge },
   { id: 'calls', label: 'Calls', icon: Phone },
   { id: 'vault', label: 'Vault', icon: Shield },
   { id: 'record', label: 'Record', icon: Video },
@@ -37,9 +45,10 @@ export function PanelHeader({
       className="flex flex-shrink-0 items-center justify-between border-b border-[var(--chrome-border-highlight)] bg-[var(--chrome-bg)] px-3 py-2.5"
       style={dragStyle}
     >
-      <div className="flex items-center gap-2" style={noDragStyle}>
+      {/* Wordmark dropped (icon only) to make room for a 9th tab — this bar was already tight
+          at 8 tabs against the 360px default window width; see TAB_SIZE_PX above. */}
+      <div className="flex items-center" style={noDragStyle}>
         <BrandMark size={20} tone="bone" />
-        <span className="font-display text-sm font-medium text-[var(--chrome-text)]">Portico</span>
       </div>
 
       <div className="relative flex items-center gap-0.5" style={noDragStyle}>
@@ -48,9 +57,10 @@ export function PanelHeader({
             transition), so rapid tab-switching redirects mid-flight with
             real spring physics instead of restarting from a standing start. */}
         <motion.div
-          animate={{ x: TABS.findIndex((t) => t.id === activeTab) * 30 }}
+          animate={{ x: TABS.findIndex((t) => t.id === activeTab) * TAB_STEP_PX }}
           transition={springs.snappy}
-          className="pointer-events-none absolute left-0 top-0 h-7 w-7 rounded-sm bg-[var(--chrome-active-bg)]"
+          className="pointer-events-none absolute left-0 top-0 rounded-sm bg-[var(--chrome-active-bg)]"
+          style={{ height: TAB_SIZE_PX, width: TAB_SIZE_PX }}
         />
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
@@ -60,13 +70,14 @@ export function PanelHeader({
             aria-label={label}
             onClick={() => onTabChange(id)}
             className={cn(
-              'relative flex h-7 w-7 items-center justify-center rounded-sm transition-[color,transform] duration-hover ease-brand active:scale-95 active:duration-press',
+              'relative flex items-center justify-center rounded-sm transition-[color,transform] duration-hover ease-brand active:scale-95 active:duration-press',
               activeTab === id
                 ? 'text-[var(--chrome-text)]'
                 : 'text-[var(--chrome-text-faint)] hover:bg-[var(--chrome-border)] hover:text-[var(--chrome-text)]'
             )}
+            style={{ height: TAB_SIZE_PX, width: TAB_SIZE_PX }}
           >
-            <Icon size={14} />
+            <Icon size={13} />
           </button>
         ))}
         <NotificationBell variant="panel" />

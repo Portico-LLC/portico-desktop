@@ -518,7 +518,7 @@ export type WorkflowNodeType = WorkflowTriggerType | WorkflowLogicType | Workflo
 
 export const DESTRUCTIVE_NODE_TYPES: WorkflowNodeType[] = ['action.deleteTask', 'action.deleteProject', 'action.deleteInvoice'];
 
-export type AutomationEntityType = 'task' | 'project' | 'invoice' | 'client' | 'message';
+export type AutomationEntityType = 'task' | 'project' | 'invoice' | 'client' | 'message' | 'employee';
 export type AutomationEventName =
   | 'task.created'
   | 'task.updated'
@@ -526,7 +526,9 @@ export type AutomationEventName =
   | 'project.updated'
   | 'invoice.created'
   | 'invoice.statusChanged'
-  | 'client.messageReceived';
+  | 'client.messageReceived'
+  | 'project.riskThresholdCrossed'
+  | 'employee.overCapacity';
 
 export type ExpressionOp = 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains' | 'isEmpty' | 'isNotEmpty';
 
