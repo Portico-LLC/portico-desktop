@@ -179,7 +179,7 @@ export function Invoices() {
           <h1 className="text-4xl font-display font-semibold text-ink-900 mb-2">Invoices</h1>
           <p className="text-ink-500">Create and manage invoices for your clients.</p>
         </div>
-        <Button variant="primary" onClick={openCreate}>
+        <Button variant="primary" data-tour-id="invoices.newInvoice" onClick={openCreate}>
           <Plus size={18} />
           New Invoice
         </Button>

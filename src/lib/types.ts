@@ -12,6 +12,7 @@ export const COMPANY_MODULES = [
   'projectTemplates',
   'games',
   'radar',
+  'steward',
 ] as const;
 
 export type CompanyModule = (typeof COMPANY_MODULES)[number];
@@ -58,8 +59,8 @@ export interface InvitationPreview {
   expiresAt: string;
 }
 
-export type NotificationType = 'team_message' | 'client_message' | 'task_assigned' | 'mention' | 'game_invite';
-export type NotificationSourceType = 'channel' | 'conversation' | 'task' | 'game_room';
+export type NotificationType = 'team_message' | 'client_message' | 'task_assigned' | 'mention' | 'game_invite' | 'agent_proposal';
+export type NotificationSourceType = 'channel' | 'conversation' | 'task' | 'game_room' | 'steward_proposal';
 
 export interface AppNotification {
   id: string;
@@ -528,7 +529,9 @@ export type AutomationEventName =
   | 'invoice.statusChanged'
   | 'client.messageReceived'
   | 'project.riskThresholdCrossed'
-  | 'employee.overCapacity';
+  | 'employee.overCapacity'
+  | 'invoice.overdue'
+  | 'client.wentSilent';
 
 export type ExpressionOp = 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains' | 'isEmpty' | 'isNotEmpty';
 
@@ -585,6 +588,34 @@ export interface Workflow {
   createdAt: string;
   updatedAt: string;
 }
+
+// --- Architect ---------------------------------------------------------------
+
+/** A node as Architect's backend hands it back — same shape as `WorkflowNodeConfig` minus
+ *  `position`, which the frontend fills in via `architectGraphLayout.ts` before this can be
+ *  treated as a real `WorkflowNodeConfig`. */
+export interface ArchitectGeneratedNode {
+  id: string;
+  type: WorkflowNodeType;
+  data: WorkflowNodeData;
+}
+
+export type ArchitectStreamEvent =
+  | { type: 'token'; content: string }
+  | { type: 'tool_call'; id: string; name: string; args: Record<string, unknown> }
+  | { type: 'tool_result'; id: string; name: string; result: unknown }
+  | {
+      type: 'graph_ready';
+      trigger: WorkflowTriggerConfig;
+      nodes: ArchitectGeneratedNode[];
+      edges: WorkflowEdgeConfig[];
+      suggestedName: string;
+      suggestedDescription?: string;
+      summary: string;
+      warnings: string[];
+    }
+  | { type: 'done' }
+  | { type: 'error'; message: string };
 
 export type WorkflowRunStatus = 'pending' | 'running' | 'waiting' | 'success' | 'failed' | 'cancelled';
 
@@ -1104,6 +1135,63 @@ export interface RadarSummary {
   projects: RadarProjectRow[];
   formulaVersion: string;
   generatedAt: string;
+}
+
+// --- Steward ---------------------------------------------------------------
+
+export type StewardProposalSeverity = 'critical' | 'warning' | 'info';
+export type StewardProposalStatus = 'pending' | 'approved' | 'dismissed' | 'expired' | 'failed';
+
+export type StewardRationaleSegment =
+  | { type: 'text'; value: string }
+  | { type: 'citation'; entityType: 'task' | 'project' | 'invoice' | 'client' | 'employee'; entityId: string; label: string };
+
+export interface StewardProposedStep {
+  tool: string;
+  args: Record<string, unknown>;
+  resultSummary?: string;
+}
+
+export interface StewardEvidenceStep {
+  tool: string;
+  args: Record<string, unknown>;
+  result: unknown;
+  at: string;
+}
+
+export interface StewardProposal {
+  id: string;
+  ownerId: string;
+  triggerType: string;
+  triggerPayload: Record<string, unknown>;
+  title: string;
+  severity: StewardProposalSeverity;
+  rationale: StewardRationaleSegment[];
+  proposedSteps: StewardProposedStep[];
+  trace: StewardEvidenceStep[];
+  status: StewardProposalStatus;
+  wasEdited: boolean;
+  originalSteps?: StewardProposedStep[] | null;
+  executionError?: string | null;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
+  createdAt: string;
+}
+
+export interface StewardSettings {
+  id: string;
+  ownerId: string;
+  triggersEnabled: Record<string, boolean>;
+  dailyBriefEnabled: boolean;
+  dailyBriefHour: number;
+  lastDailyBriefRunOn?: string | null;
+  proposalRetentionDays: number;
+}
+
+export interface StewardApiKeyStatus {
+  configured: boolean;
+  keyPrefix: string | null;
+  lastUsedAt: string | null;
 }
 
 export interface RadarMethodology {

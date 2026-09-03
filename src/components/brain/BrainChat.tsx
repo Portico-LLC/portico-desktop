@@ -6,52 +6,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useBrainStore, type LiveToolEvent } from '@/store/brain';
 import type { BrainMessage } from '@/lib/types';
 import { format, isSameDay } from 'date-fns';
-
-function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith('**') && part.endsWith('**') && part.length > 4 ? (
-      <strong key={`${keyPrefix}-${i}`}>{part.slice(2, -2)}</strong>
-    ) : (
-      <span key={`${keyPrefix}-${i}`}>{part}</span>
-    ),
-  );
-}
-
-/** Minimal, dependency-free markdown for chat bubbles: **bold** and "- " bullet lists. */
-function renderMarkdownLite(text: string): React.ReactNode {
-  const lines = text.split('\n');
-  const nodes: React.ReactNode[] = [];
-  let listBuffer: string[] = [];
-
-  const flushList = (key: string) => {
-    if (listBuffer.length === 0) return;
-    nodes.push(
-      <ul key={key} className="my-1 list-disc space-y-0.5 pl-4">
-        {listBuffer.map((item, i) => (
-          <li key={i}>{renderInline(item, `${key}-li-${i}`)}</li>
-        ))}
-      </ul>,
-    );
-    listBuffer = [];
-  };
-
-  lines.forEach((line, idx) => {
-    const bulletMatch = line.match(/^\s*[-*]\s+(.*)$/);
-    if (bulletMatch) {
-      listBuffer.push(bulletMatch[1]);
-      return;
-    }
-    flushList(`list-${idx}`);
-    if (line.trim() === '') {
-      nodes.push(<div key={`br-${idx}`} className="h-2" />);
-    } else {
-      nodes.push(<p key={`p-${idx}`}>{renderInline(line, `p-${idx}`)}</p>);
-    }
-  });
-  flushList('list-end');
-
-  return <>{nodes}</>;
-}
+import { renderMarkdownLite } from '@/lib/chatMarkdown';
 
 const SUGGESTED_PROMPTS = [
   "What's overdue this week?",
@@ -269,7 +224,7 @@ export function BrainChat({ portal = false }: { portal?: boolean }) {
                 <div ref={bottomRef} />
               </div>
 
-              <div className="px-5 py-4 border-t border-ink-200">
+              <div data-tour-id="brain.composer" className="px-5 py-4 border-t border-ink-200">
                 <div className="flex items-end gap-3">
                   <textarea
                     className="flex-1 min-h-[44px] max-h-32 resize-y rounded-sm border border-ink-300 bg-bone-50 px-3 py-2.5 text-sm placeholder:text-ink-400 focus:border-brass-500 focus:outline-none"

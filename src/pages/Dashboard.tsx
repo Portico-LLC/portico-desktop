@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuthStore } from '@/store/auth';
+import { SetupChecklist } from '@/components/onboarding/SetupChecklist';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -257,6 +258,14 @@ export function Dashboard() {
           />
         )}
       </div>
+
+      {/* Owner-only, and self-removing: the component renders nothing once the list is
+          dismissed or does not apply, so no role branch is needed here. */}
+      {isOwner && (
+        <div className="mb-8">
+          <SetupChecklist />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">

@@ -3,6 +3,7 @@ import { ClientSidebar } from './ClientSidebar';
 import { TopBar } from './TopBar';
 import { useSidebar } from './SidebarContext';
 import { cn } from '@/lib/utils';
+import { OnboardingProvider } from '@/components/onboarding/OnboardingProvider';
 
 export function ClientLayout() {
   const { isCollapsed } = useSidebar();
@@ -22,6 +23,8 @@ export function ClientLayout() {
           <Outlet />
         </div>
       </main>
+      {/* Same reasoning as the studio Layout — an authenticated portal session only. */}
+      <OnboardingProvider />
     </div>
   );
 }

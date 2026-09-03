@@ -16,6 +16,8 @@ import { Label } from '@/components/ui/Label';
 import { Avatar } from '@/components/ui/Avatar';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { PasswordChangeCard } from '@/components/settings/PasswordChangeCard';
+import { StewardSettingsCard } from '@/components/settings/StewardSettingsCard';
+import { WalkthroughCard } from '@/components/settings/WalkthroughCard';
 
 const THEME_OPTIONS: { id: ThemePreference; label: string }[] = [
   { id: 'light', label: 'Light' },
@@ -218,6 +220,10 @@ export function Settings() {
         </Card>
 
         <PasswordChangeCard />
+
+        <StewardSettingsCard />
+
+        <WalkthroughCard />
 
         {isOwner && (
         <Card>

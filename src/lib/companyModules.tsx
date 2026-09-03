@@ -1,4 +1,4 @@
-import { Briefcase, CheckSquare, MessageSquare, FileStack, Shield, CalendarDays, Workflow, Brain, FileText, LayoutTemplate, Gamepad2, Gauge } from 'lucide-react';
+import { Briefcase, CheckSquare, MessageSquare, FileStack, Shield, CalendarDays, Workflow, Brain, FileText, LayoutTemplate, Gamepad2, Gauge, Sparkles } from 'lucide-react';
 import { COMPANY_MODULES, type CompanyModule } from '@/lib/types';
 
 export { COMPANY_MODULES };
@@ -16,4 +16,5 @@ export const MODULE_META: Record<CompanyModule, { label: string; icon: React.Rea
   projectTemplates: { label: 'Templates', icon: <LayoutTemplate size={16} /> },
   games: { label: 'Arcade', icon: <Gamepad2 size={16} /> },
   radar: { label: 'Radar', icon: <Gauge size={16} /> },
+  steward: { label: 'Steward', icon: <Sparkles size={16} /> },
 };

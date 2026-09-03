@@ -1,10 +1,13 @@
 import type { CSSProperties } from 'react';
 import { motion } from 'framer-motion';
-import { ListChecks, Calendar, MessageSquare, FolderKanban, Shield, Video, Phone, Settings2, Minus, Gauge } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { ListChecks, Calendar, MessageSquare, FolderKanban, Shield, Video, Phone, Settings2, Minus, Gauge, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/brand/BrandMark';
 import { NotificationBell } from '@/components/NotificationBell';
 import { springs } from '@/lib/motion/springs';
+import { api } from '@/lib/api';
+import type { AppNotification } from '@/lib/types';
 import type { PanelPrefs } from '@/types/electron';
 
 // Electron's frameless-window drag region isn't part of React's CSSProperties
@@ -21,7 +24,7 @@ type PanelTab = PanelPrefs['activeTab'];
 const TAB_SIZE_PX = 24;
 const TAB_STEP_PX = 26;
 
-const TABS: { id: PanelTab; label: string; icon: typeof ListChecks }[] = [
+const BASE_TABS: { id: PanelTab; label: string; icon: typeof ListChecks }[] = [
   { id: 'tasks', label: 'Tasks', icon: ListChecks },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
@@ -33,6 +36,8 @@ const TABS: { id: PanelTab; label: string; icon: typeof ListChecks }[] = [
   { id: 'preferences', label: 'Preferences', icon: Settings2 },
 ];
 
+const STEWARD_TAB = { id: 'steward' as PanelTab, label: 'Steward', icon: Sparkles };
+
 export function PanelHeader({
   activeTab,
   onTabChange,
@@ -40,6 +45,19 @@ export function PanelHeader({
   activeTab: PanelTab;
   onTabChange: (tab: PanelTab) => void;
 }) {
+  // The tab bar is already at capacity at 9 tabs even in the widest window preset (see
+  // TAB_SIZE_PX above) — rather than shrink icons further or add a "more" overflow menu, Steward
+  // only claims a slot when there's actually something to review. This also reads as thematically
+  // consistent: Steward itself never writes a proposal when nothing warrants attention, so it's
+  // quiet here too. Reads the same `['notifications']` cache the bell already keeps live over the
+  // socket (`useNotificationsSocket`) — no extra fetch, no new socket wiring.
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.get<AppNotification[]>('/notifications').then((res) => res.data),
+  });
+  const hasPendingProposal = notifications.some((n) => n.type === 'agent_proposal' && !n.readAt);
+  const TABS = hasPendingProposal ? [...BASE_TABS, STEWARD_TAB] : BASE_TABS;
+
   return (
     <div
       className="flex flex-shrink-0 items-center justify-between border-b border-[var(--chrome-border-highlight)] bg-[var(--chrome-bg)] px-3 py-2.5"

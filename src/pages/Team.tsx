@@ -16,6 +16,7 @@ import { Search, Plus, Edit, Trash2, FolderKanban, Mail } from 'lucide-react';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { InviteDialog } from '@/components/InviteDialog';
 import { InvitesPanel } from '@/components/InvitesPanel';
+import { TeamTabs } from '@/components/team/TeamTabs';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -135,7 +136,7 @@ export function Team() {
           <p className="text-ink-500">Add employees and assign them to projects.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={() => setInviteDialogOpen(true)}>
+          <Button variant="secondary" data-tour-id="team.inviteEmployee" onClick={() => setInviteDialogOpen(true)}>
             <Mail size={18} />
             Invite Employee
           </Button>
@@ -146,7 +147,9 @@ export function Team() {
         </div>
       </div>
 
-      <div className="mb-6">
+      <TeamTabs />
+
+      <div className="mb-6 mt-6">
         <div className="relative w-72">
           <Search className="absolute left-3 top-3 h-4 w-4 text-ink-400" />
           <Input

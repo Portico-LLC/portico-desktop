@@ -12,6 +12,7 @@ import { X, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { NODE_STYLES } from './automationNodeStyles';
 import type {
   WorkflowNodeConfig,
+  WorkflowTriggerConfig,
   ExpressionCondition,
   ExpressionOp,
   AutomationEntityType,
@@ -244,12 +245,22 @@ export function NodeConfigPanel({ node, onClose }: { node: WorkflowNodeConfig; o
   const updateNodeData = useAutomationsStore((s) => s.updateNodeData);
   const deleteNode = useAutomationsStore((s) => s.deleteNode);
   const workflow = useAutomationsStore((s) => s.workflow);
+  const setTrigger = useAutomationsStore((s) => s.setTrigger);
   const refs = useRefOptions();
   const meta = NODE_STYLES[node.type];
   const Icon = meta.icon;
   const config = node.data.config ?? {};
 
-  const setConfig = (patch: Record<string, unknown>) => updateNodeData(node.id, { config: { ...config, ...patch } });
+  // The trigger node's config (inside `nodes[]`) and `Workflow.trigger` (a separate top-level
+  // column the scheduler/event-listener actually read) are two different fields — nothing else
+  // in this file kept them in sync, so a cron/event trigger configured here silently never fired.
+  const setConfig = (patch: Record<string, unknown>) => {
+    const merged = { ...config, ...patch };
+    updateNodeData(node.id, { config: merged });
+    if (node.type.startsWith('trigger.')) {
+      setTrigger({ type: node.type, ...merged } as WorkflowTriggerConfig);
+    }
+  };
   const setLabel = (label: string) => updateNodeData(node.id, { label });
   const setAck = (ack: boolean) => updateNodeData(node.id, { destructiveAck: ack });
   const handleDelete = () => {

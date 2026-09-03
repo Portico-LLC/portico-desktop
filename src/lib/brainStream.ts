@@ -1,4 +1,5 @@
 import { API_URL } from './api';
+import type { ArchitectStreamEvent } from './types';
 
 export type BrainStreamEvent =
   | { type: 'token'; content: string }
@@ -18,10 +19,13 @@ function readToken(): string | null {
   return localStorage.getItem('portico_token') || sessionStorage.getItem('portico_token');
 }
 
-async function streamPost(
+/** Generic raw-fetch SSE consumer — bearer auth, buffers on `\n\n`, parses a discriminated
+ *  union, invokes a callback per event. Shared by Brain chat and Architect's chat, which have
+ *  different event unions but an identical wire format. */
+export async function streamPost<TEvent = BrainStreamEvent>(
   path: string,
   body: unknown,
-  onEvent: (event: BrainStreamEvent) => void,
+  onEvent: (event: TEvent | { type: 'error'; message: string }) => void,
   signal?: AbortSignal,
 ): Promise<void> {
   const token = readToken();
@@ -62,7 +66,7 @@ async function streamPost(
       buffer = buffer.slice(idx + 2);
       if (!chunk.startsWith('data: ')) continue;
       try {
-        const event = JSON.parse(chunk.slice(6)) as BrainStreamEvent;
+        const event = JSON.parse(chunk.slice(6)) as TEvent;
         onEvent(event);
       } catch {
         // ignore malformed SSE chunk
@@ -91,4 +95,13 @@ export function streamBrainConfirm(
   signal?: AbortSignal,
 ) {
   return streamPost(`${basePath}/threads/${threadId}/confirm`, { confirm }, onEvent, signal);
+}
+
+export function streamArchitectMessage(
+  sessionId: string,
+  content: string,
+  onEvent: (event: ArchitectStreamEvent) => void,
+  signal?: AbortSignal,
+) {
+  return streamPost<ArchitectStreamEvent>(`/automations/architect/sessions/${sessionId}/messages`, { content }, onEvent, signal);
 }

@@ -31,6 +31,8 @@ import { Brain } from '@/pages/Brain';
 import { Calendar } from '@/pages/Calendar';
 import { Automations } from '@/pages/Automations';
 import { AutomationBuilder } from '@/pages/AutomationBuilder';
+import { Architect } from '@/pages/Architect';
+import { Steward } from '@/pages/Steward';
 import { Team } from '@/pages/Team';
 import { ProjectTemplates } from '@/pages/ProjectTemplates';
 import { TeamChat } from '@/pages/TeamChat';
@@ -93,6 +95,12 @@ const ClientDocuments = lazy(() => import('@/pages/portal/ClientDocuments').then
 
 // Lazy-loaded: canvas rendering + per-game data (word bank, dictionary) is meaningfully
 // heavier than a typical page — only fetched when someone actually visits Arcade.
+// Lazy-loaded: the builder pulls in TipTap and dnd-kit, which only the studio owner
+// authoring onboarding ever needs.
+const TeamOnboarding = lazy(() =>
+  import('@/pages/TeamOnboarding').then((m) => ({ default: m.TeamOnboarding })),
+);
+
 const ArcadeHub = lazy(() => import('@/pages/arcade/ArcadeHub').then((m) => ({ default: m.ArcadeHub })));
 const ArcadeRoom = lazy(() => import('@/pages/arcade/ArcadeRoom').then((m) => ({ default: m.ArcadeRoom })));
 const ArcadeLeaderboard = lazy(() => import('@/pages/arcade/ArcadeLeaderboard').then((m) => ({ default: m.ArcadeLeaderboard })));
@@ -217,13 +225,25 @@ export default function App() {
                 </Route>
                 <Route element={<ModuleGuard module="automations" />}>
                   <Route path="/automations" element={<Automations />} />
+                  <Route path="/automations/architect" element={<Architect />} />
                   <Route path="/automations/:id" element={<AutomationBuilder />} />
+                </Route>
+                <Route element={<ModuleGuard module="steward" />}>
+                  <Route path="/steward" element={<Steward />} />
                 </Route>
                 <Route path="/clients" element={<Clients />} />
                 <Route element={<ModuleGuard module="invoices" />}>
                   <Route path="/invoices" element={<Invoices />} />
                 </Route>
                 <Route path="/team" element={<Team />} />
+                <Route
+                  path="/team/onboarding"
+                  element={
+                    <Suspense fallback={<LazyPageFallback />}>
+                      <TeamOnboarding />
+                    </Suspense>
+                  }
+                />
                 <Route element={<ModuleGuard module="projectTemplates" />}>
                   <Route path="/project-templates" element={<ProjectTemplates />} />
                 </Route>

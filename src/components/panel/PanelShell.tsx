@@ -10,6 +10,7 @@ import { CallTab } from '@/components/panel/CallTab';
 import { VaultTab } from '@/components/panel/VaultTab';
 import { RecordTab } from '@/components/panel/RecordTab';
 import { PreferencesTab } from '@/components/panel/PreferencesTab';
+import { StewardTab } from '@/components/panel/StewardTab';
 import { usePanelPrefsStore } from '@/store/panelPrefs';
 import { motionTransition, springs } from '@/lib/motion/springs';
 import type { PanelPrefs } from '@/types/electron';
@@ -58,6 +59,7 @@ export function PanelShell() {
             {activeTab === 'vault' && <VaultTab />}
             {activeTab === 'record' && <RecordTab />}
             {activeTab === 'preferences' && <PreferencesTab />}
+            {activeTab === 'steward' && <StewardTab />}
           </motion.div>
         </AnimatePresence>
       </div>

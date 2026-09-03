@@ -13,7 +13,13 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
-import { Plus, Workflow as WorkflowIcon, Trash2, Zap, Clock, Play, AlertTriangle, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { Plus, Workflow as WorkflowIcon, Trash2, Zap, Clock, Play, AlertTriangle, Loader2, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
+
+const CREATE_MODE_OPTIONS = [
+  { id: 'blank' as const, label: 'Start from scratch' },
+  { id: 'architect' as const, label: 'Describe it to Architect' },
+];
 
 const TRIGGER_META: Record<string, { label: string; icon: typeof Zap }> = {
   'trigger.manual': { label: 'Manual', icon: Play },
@@ -164,8 +170,10 @@ export function Automations() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createMode, setCreateMode] = useState<'blank' | 'architect'>('blank');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [architectSeed, setArchitectSeed] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Workflow | null>(null);
 
   const { data: workflows = [], isLoading } = useQuery({
@@ -217,7 +225,7 @@ export function Automations() {
           <h1 className="text-4xl font-display font-semibold text-ink-900 mb-2">Automations</h1>
           <p className="text-ink-500">Build workflows that act on your workspace automatically — schedules, events, and actions.</p>
         </div>
-        <Button variant="primary" onClick={() => setDialogOpen(true)}>
+        <Button variant="primary" data-tour-id="automations.newWorkflow" onClick={() => setDialogOpen(true)}>
           <Plus size={18} />
           New Automation
         </Button>
@@ -255,31 +263,68 @@ export function Automations() {
           <DialogHeader>
             <DialogTitle>New Automation</DialogTitle>
           </DialogHeader>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (name.trim()) createMutation.mutate();
-            }}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="automation-name">Name</Label>
-              <Input id="automation-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Notify me on new client messages" autoFocus />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="automation-description">Description (optional)</Label>
-              <Textarea id="automation-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-            </div>
-            {createMutation.isError && <p className="text-xs text-terracotta-600">{getErrorMessage(createMutation.error)}</p>}
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary" disabled={!name.trim() || createMutation.isPending}>
-                {createMutation.isPending ? 'Creating…' : 'Create & Build'}
-              </Button>
-            </div>
-          </form>
+
+          <SegmentedControl options={CREATE_MODE_OPTIONS} value={createMode} onChange={setCreateMode} className="mb-1" />
+
+          {createMode === 'blank' ? (
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (name.trim()) createMutation.mutate();
+              }}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="automation-name">Name</Label>
+                <Input id="automation-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Notify me on new client messages" autoFocus />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="automation-description">Description (optional)</Label>
+                <Textarea id="automation-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+              </div>
+              {createMutation.isError && <p className="text-xs text-terracotta-600">{getErrorMessage(createMutation.error)}</p>}
+              <div className="flex justify-end gap-3 pt-2">
+                <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={!name.trim() || createMutation.isPending}>
+                  {createMutation.isPending ? 'Creating…' : 'Create & Build'}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!architectSeed.trim()) return;
+                setDialogOpen(false);
+                navigate('/automations/architect', { state: { seed: architectSeed } });
+              }}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="architect-seed">Describe the automation you want</Label>
+                <Textarea
+                  id="architect-seed"
+                  value={architectSeed}
+                  onChange={(e) => setArchitectSeed(e.target.value)}
+                  placeholder="When a task is created on a project, notify the assignee"
+                  rows={3}
+                  autoFocus
+                />
+                <p className="text-xs text-ink-400">Architect looks up your real projects, clients, and team, then hands you a draft to review.</p>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={!architectSeed.trim()}>
+                  <Sparkles size={16} />
+                  Start designing
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -1,4 +1,4 @@
-import { MessageSquare, Hash, CheckSquare, AtSign, Gamepad2 } from 'lucide-react';
+import { MessageSquare, Hash, CheckSquare, AtSign, Gamepad2, Sparkles } from 'lucide-react';
 import type { NotificationType } from '@/lib/types';
 
 export const NOTIFICATION_TYPE_ICON: Record<NotificationType, React.ReactNode> = {
@@ -7,4 +7,5 @@ export const NOTIFICATION_TYPE_ICON: Record<NotificationType, React.ReactNode> =
   task_assigned: <CheckSquare size={14} />,
   mention: <AtSign size={14} />,
   game_invite: <Gamepad2 size={14} />,
+  agent_proposal: <Sparkles size={14} />,
 };

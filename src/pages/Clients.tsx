@@ -127,7 +127,7 @@ export function Clients() {
             <Mail size={18} />
             Invite Client
           </Button>
-          <Button variant="primary" onClick={() => openDialog(null)}>
+          <Button variant="primary" data-tour-id="clients.newClient" onClick={() => openDialog(null)}>
             <Plus size={18} />
             Add Client
           </Button>

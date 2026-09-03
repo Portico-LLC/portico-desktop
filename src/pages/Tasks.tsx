@@ -338,7 +338,7 @@ export function Tasks() {
           <h1 className="text-4xl font-display font-semibold text-ink-900 mb-2">Tasks</h1>
           <p className="text-ink-500">Track and manage your team's work.</p>
         </div>
-        <Button variant="primary" onClick={() => setDialogOpen(true)}>
+        <Button variant="primary" data-tour-id="tasks.newTask" onClick={() => setDialogOpen(true)}>
           <Plus size={18} />
           New Task
         </Button>

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import type { AppNotification } from '@/lib/types';
 import {
   Home,
   Activity,
@@ -25,6 +28,7 @@ import {
   CalendarDays,
   Gamepad2,
   Gauge,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motionTransition, springs } from '@/lib/motion/springs';
@@ -32,6 +36,7 @@ import { useSidebar } from './SidebarContext';
 import { useAuthStore } from '@/store/auth';
 import { useCommandPaletteStore } from '@/store/commandPalette';
 import { BrandMark } from '@/components/brand/BrandMark';
+import { anchorForHref } from '@/lib/onboarding/anchors';
 import type { CompanyModule } from '@/lib/types';
 
 interface NavItem {
@@ -82,6 +87,7 @@ const ownerNavSections: NavSection[] = [
       { label: 'Messages', icon: <MessageSquare size={18} />, href: '/team-chat', module: 'teamChat' },
       { label: 'Arcade', icon: <Gamepad2 size={18} />, href: '/arcade', module: 'games' },
       { label: 'Brain', icon: <Brain size={18} />, href: '/brain', module: 'brain' },
+      { label: 'Steward', icon: <Sparkles size={18} />, href: '/steward', module: 'steward' },
       { label: 'Vault', icon: <Shield size={18} />, href: '/vault', module: 'vault' },
       { label: 'Documents', icon: <FileStack size={18} />, href: '/documents', module: 'documents' },
     ],
@@ -129,6 +135,14 @@ export function Sidebar() {
   const logout = useAuthStore((s) => s.logout);
   const enabledModules = useAuthStore((s) => s.user?.enabledModules);
   const openCommandPalette = useCommandPaletteStore((s) => s.setOpen);
+  // Same shared `['notifications']` cache the bell already keeps live over the socket — no
+  // extra fetch, no new socket wiring, just a live-updating count for the Steward nav pill.
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.get<AppNotification[]>('/notifications').then((res) => res.data),
+    enabled: role === 'user',
+  });
+  const stewardPendingCount = notifications.filter((n) => n.type === 'agent_proposal' && !n.readAt).length;
   // Employee sessions don't currently carry the owner's enabledModules (the
   // Employee entity/login response has no such field) — only the owner's own
   // session is gated for now; an employee's nav shows every module until
@@ -168,6 +182,9 @@ export function Sidebar() {
       <Link
         key={item.href}
         to={item.href}
+        // Derived from the href rather than hand-annotated per item, so every nav entry is
+        // tour-anchorable from this one line — including any added later.
+        data-tour-id={anchorForHref(item.href)}
         className={cn(
           'group relative flex items-center gap-3 rounded-sm text-sm font-medium transition-all duration-hover ease-brand before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-[var(--chrome-accent)] before:transition-opacity before:duration-hover before:ease-brand',
           isCollapsed ? 'justify-center px-0 py-2.5 mx-1' : 'px-3 py-2.5',
@@ -179,7 +196,17 @@ export function Sidebar() {
         <span className="transition-transform duration-hover ease-brand group-hover:translate-x-0.5">
           {item.icon}
         </span>
-        {!isCollapsed && <span>{item.label}</span>}
+        {!isCollapsed && <span className="flex-1">{item.label}</span>}
+        {item.href === '/steward' && stewardPendingCount > 0 && (
+          <span
+            className={cn(
+              'flex h-4 min-w-4 items-center justify-center rounded-full bg-brass-500 px-1 text-[10px] font-semibold leading-none text-ink-950',
+              isCollapsed && 'absolute -right-0.5 -top-0.5',
+            )}
+          >
+            {stewardPendingCount > 9 ? '9+' : stewardPendingCount}
+          </span>
+        )}
       </Link>
     );
   };
@@ -234,6 +261,7 @@ export function Sidebar() {
       <div className={cn('px-2 pt-3', isCollapsed && 'flex justify-center')}>
         <button
           onClick={() => openCommandPalette(true)}
+          data-tour-id="sidebar.search"
           title="Search (⌘K)"
           className={cn(
             'flex items-center gap-2 rounded-sm text-sm text-[var(--chrome-text-faint)] transition-all duration-hover ease-brand hover:bg-[var(--chrome-border)] hover:text-[var(--chrome-text)]',
@@ -282,6 +310,7 @@ export function Sidebar() {
       <div className="px-2 pt-4 pb-2 border-t border-[var(--chrome-border)]">
         <Link
           to="/settings"
+          data-tour-id="sidebar.settings"
           className={cn(
             'group relative flex items-center gap-3 rounded-sm text-sm font-medium transition-all duration-hover ease-brand before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-[var(--chrome-accent)] before:transition-opacity before:duration-hover before:ease-brand',
             isCollapsed ? 'justify-center px-0 py-2.5 mx-1' : 'px-3 py-2.5',

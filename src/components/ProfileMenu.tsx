@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Settings, LogOut, ChevronDown, RotateCcw } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { useOnboardingStore } from '@/store/onboarding';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +14,7 @@ export function ProfileMenu({ profileHref = '/settings' }: ProfileMenuProps) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const requestReplay = useOnboardingStore((s) => s.requestReplay);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const displayName = user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Account';
@@ -36,6 +38,14 @@ export function ProfileMenu({ profileHref = '/settings' }: ProfileMenuProps) {
   const handleSettings = () => {
     setOpen(false);
     navigate(profileHref);
+  };
+
+  // Lives here rather than only in Settings because clients have no Settings page of their own
+  // (their avatar links to the portal dashboard), and this menu is the one surface all three
+  // roles share.
+  const handleReplayTour = () => {
+    setOpen(false);
+    requestReplay();
   };
 
   const handleLogout = () => {
@@ -89,6 +99,15 @@ export function ProfileMenu({ profileHref = '/settings' }: ProfileMenuProps) {
             >
               <Settings size={16} className="text-ink-400" />
               Settings
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleReplayTour}
+              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-ink-700 transition-colors duration-hover ease-brand hover:bg-ink-100 hover:text-ink-900"
+            >
+              <RotateCcw size={16} className="text-ink-400" />
+              Replay walkthrough
             </button>
             <button
               type="button"

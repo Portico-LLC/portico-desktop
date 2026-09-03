@@ -6,6 +6,7 @@ import { useSidebar } from './SidebarContext';
 import { NotificationToast } from './NotificationToast';
 import { useNotificationsSocket } from '@/hooks/useNotificationsSocket';
 import { motionTransition, springs } from '@/lib/motion/springs';
+import { OnboardingProvider } from '@/components/onboarding/OnboardingProvider';
 
 export function Layout() {
   const { isCollapsed } = useSidebar();
@@ -26,6 +27,10 @@ export function Layout() {
         </div>
       </motion.main>
       <NotificationToast />
+      {/* Mounted here rather than in App: this shell only renders for an authenticated studio
+          session, which structurally excludes the frameless Electron panel and source-picker
+          windows (declared outside it) along with login and the landing page. */}
+      <OnboardingProvider />
     </div>
   );
 }

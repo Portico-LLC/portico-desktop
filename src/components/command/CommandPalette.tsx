@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/Dialog';
 import { useAuthStore } from '@/store/auth';
 import { api } from '@/lib/api';
 import type { Client, Project, Task, Invoice } from '@/lib/types';
-import { Search, Plus, Users, Briefcase, CheckSquare, FileText } from 'lucide-react';
+import { Search, Plus, Users, Briefcase, CheckSquare, FileText, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CommandPaletteProps {
@@ -66,6 +66,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 <Command.Item className={itemClass} onSelect={() => go('/clients?new=1')}>
                   <Plus size={15} className="text-ink-400" /> New client
                 </Command.Item>
+                {/* Owner-only, deliberately narrower than this group's `!isClient` gate above —
+                    employees don't get Steward in v1 (per-project tool scoping was never
+                    audited for them, matching Brain's and Automations' existing precedent). */}
+                {role === 'user' && (
+                  <Command.Item className={itemClass} onSelect={() => go('/steward')}>
+                    <Sparkles size={15} className="text-ink-400" /> Open Steward
+                  </Command.Item>
+                )}
               </Command.Group>
             )}
 

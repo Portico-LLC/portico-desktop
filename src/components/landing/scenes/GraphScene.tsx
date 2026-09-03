@@ -35,7 +35,10 @@ export function GraphScene({ play }: { play: boolean }) {
               y1={a.y}
               x2={b.x}
               y2={b.y}
-              stroke="#C6C0B0"
+              // Tokenised, not a literal: this scene is now reused by the onboarding intro,
+              // which renders in both themes. The frozen light-mode hex read as a bright seam
+              // on a dark surface, since the landing page pins itself light and never hit it.
+              stroke="var(--border-strong)"
               strokeWidth="0.4"
               vectorEffect="non-scaling-stroke"
               initial={{ pathLength: 0 }}

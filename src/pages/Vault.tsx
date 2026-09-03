@@ -206,7 +206,7 @@ function VaultWorkspace() {
           <p className="text-ink-500">End-to-end encrypted secrets, shared only with people you choose.</p>
         </div>
         {isOwner && (
-          <Button variant="primary" onClick={() => setNewVaultOpen(true)}>
+          <Button variant="primary" data-tour-id="vault.newItem" onClick={() => setNewVaultOpen(true)}>
             <Plus size={18} />
             New Vault
           </Button>

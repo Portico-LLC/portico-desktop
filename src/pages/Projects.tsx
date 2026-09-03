@@ -144,7 +144,7 @@ export function Projects() {
           <p className="text-ink-500">Track your projects and their progress.</p>
         </div>
         {isOwner && (
-          <Button variant="primary" onClick={() => setDialogOpen(true)}>
+          <Button variant="primary" data-tour-id="projects.newProject" onClick={() => setDialogOpen(true)}>
             <Plus size={18} />
             New Project
           </Button>

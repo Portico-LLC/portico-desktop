@@ -18,6 +18,7 @@ import { useSidebar } from './SidebarContext';
 import { useAuthStore } from '@/store/auth';
 import { useCommandPaletteStore } from '@/store/commandPalette';
 import { BrandMark } from '@/components/brand/BrandMark';
+import { anchorForHref } from '@/lib/onboarding/anchors';
 
 interface NavItem {
   label: string;
@@ -132,6 +133,7 @@ export function ClientSidebar() {
             <Link
               key={item.href}
               to={item.href}
+              data-tour-id={anchorForHref(item.href)}
               className={cn(
                 'group relative flex items-center gap-3 rounded-sm text-sm font-medium transition-all duration-hover ease-brand before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-[var(--chrome-accent)] before:transition-opacity before:duration-hover before:ease-brand',
                 isCollapsed ? 'justify-center px-0 py-2.5 mx-1' : 'px-3 py-2.5',

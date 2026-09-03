@@ -196,7 +196,7 @@ export function Documents() {
               <Plus size={18} />
               New Page
             </Button>
-            <Button variant="secondary" onClick={() => setUploadDialogOpen(true)}>
+            <Button variant="secondary" data-tour-id="documents.upload" onClick={() => setUploadDialogOpen(true)}>
               <Upload size={18} />
               Upload
             </Button>
