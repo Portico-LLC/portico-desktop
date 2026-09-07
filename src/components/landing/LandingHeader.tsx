@@ -31,7 +31,7 @@ export function LandingHeader() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 border-b bg-bone-50/90 backdrop-blur transition-shadow duration-hover ease-brand',
+        'sticky top-0 z-40 border-b bg-bone-50 transition-shadow duration-hover ease-brand',
         scrolled ? 'border-ink-200 shadow-sm' : 'border-transparent'
       )}
     >

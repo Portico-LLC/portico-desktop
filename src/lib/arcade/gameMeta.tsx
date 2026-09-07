@@ -1,4 +1,4 @@
-import { Bomb, Palette, Swords } from 'lucide-react';
+import { Bomb, Crown, Palette, Swords } from 'lucide-react';
 import type { GameType } from '@/lib/types';
 
 export interface GameMeta {
@@ -22,7 +22,7 @@ export const GAME_META: Record<GameType, GameMeta> = {
   },
   snake_royale: {
     label: 'Snake Royale',
-    tagline: 'Last snake alive wins — the arena shrinks as you go.',
+    tagline: 'Last snake alive wins as the arena shrinks.',
     icon: <Swords size={20} />,
     minPlayers: 2,
     available: true,
@@ -31,6 +31,13 @@ export const GAME_META: Record<GameType, GameMeta> = {
     label: 'Doodle Relay',
     tagline: 'Draw it, guess it, score points.',
     icon: <Palette size={20} />,
+    minPlayers: 2,
+    available: true,
+  },
+  chess: {
+    label: 'Chess',
+    tagline: 'Classic chess — ranked time controls or a bot.',
+    icon: <Crown size={20} />,
     minPlayers: 2,
     available: true,
   },

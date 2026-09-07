@@ -3,7 +3,15 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { useForceLightTheme } from '@/hooks/useForceLightTheme';
 
-export function ElectronAuthLayout({ children }: { children: ReactNode }) {
+export function ElectronAuthLayout({
+  children,
+}: {
+  children: ReactNode;
+  // Accepted for prop-compatibility with `AuthWrapper`'s other branch
+  // (`AuthLayout`) — the desktop app never shows the marketing landing page,
+  // so there's no login/signup copy variant to apply here.
+  variant?: 'login' | 'signup';
+}) {
   useForceLightTheme();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const role = useAuthStore((s) => s.role);

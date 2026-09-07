@@ -709,7 +709,7 @@ export interface DocumentQuota {
 
 // ---------------- Arcade ----------------
 
-export type GameType = 'snake_royale' | 'doodle_relay' | 'word_bomb';
+export type GameType = 'snake_royale' | 'doodle_relay' | 'word_bomb' | 'chess';
 export type GameRoomStatus = 'lobby' | 'starting' | 'in_progress' | 'finished' | 'abandoned';
 export type GameRoomVisibility = 'open' | 'invite_only';
 export type GameRoomMemberType = 'owner' | 'employee' | 'bot';
@@ -894,6 +894,78 @@ export interface WordBombRoundEndPayload {
 export interface WordBombMatchEndPayload {
   roomId: string;
   players: { seat: number; placement?: number; won: boolean; score: number; roundsWon: number }[];
+}
+
+// Chess realtime payloads (socket-only, never persisted verbatim — see chess.engine.ts). The
+// server is the sole source of truth: FEN/turn/clocks always come from these events, never
+// computed speculatively on the client beyond instant legal-move-square highlighting.
+
+export type ChessColor = 'w' | 'b';
+export type ChessGameOutcome = 'win' | 'draw';
+
+export interface ChessClocks {
+  w: number;
+  b: number;
+}
+
+export interface ChessStatePayload {
+  roomId: string;
+  roundNumber: number;
+  roundsTotal: number;
+  fen: string;
+  turn: ChessColor;
+  whiteSeat: number;
+  blackSeat: number;
+  clocks: ChessClocks;
+  incrementMs: number;
+  moveHistory: string[];
+  inCheck: boolean;
+  drawOfferBy: number | null;
+  points: { seat: number; points: number }[];
+}
+
+export interface ChessMoveAppliedPayload {
+  roomId: string;
+  seat: number;
+  move: { from: string; to: string; san: string; promotion?: string; captured?: string };
+  fen: string;
+  turn: ChessColor;
+  clocks: ChessClocks;
+  inCheck: boolean;
+}
+
+export type ChessMoveRejectReason = 'not_your_turn' | 'invalid_input' | 'illegal';
+
+export interface ChessMoveRejectedPayload {
+  roomId: string;
+  seat: number;
+  reason: ChessMoveRejectReason;
+}
+
+export interface ChessDrawOfferedPayload {
+  roomId: string;
+  seat: number;
+}
+
+export interface ChessRoundEndPayload {
+  roomId: string;
+  roundNumber: number;
+  outcome: ChessGameOutcome;
+  winnerSeat: number | null;
+  reason: string;
+  pgn: string;
+  points: { seat: number; points: number }[];
+}
+
+export interface ChessMatchEndPayload {
+  roomId: string;
+  players: { seat: number; placement?: number; won: boolean; score: number; roundsWon: number }[];
+}
+
+export interface ChessOpponentDisconnectedPayload {
+  roomId: string;
+  seat: number;
+  graceMs: number;
 }
 
 // Snake Royale realtime payloads — snake:tick fires ~15x/sec (server tick rate), never

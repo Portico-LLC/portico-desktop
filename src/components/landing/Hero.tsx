@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { HeroArch } from '@/components/brand/HeroArch';
+import { HeroSceneBackdrop } from '@/components/landing/HeroSceneBackdrop';
 import { DashboardScene } from '@/components/landing/scenes/DashboardScene';
 import { useSceneVisibility } from '@/lib/motion/useSceneVisibility';
 
@@ -26,7 +26,7 @@ export function Hero() {
       ref={heroRef}
       className="relative overflow-hidden bg-ink-950 text-bone-50"
     >
-      <HeroArch reduce={reduce} />
+      <HeroSceneBackdrop reduce={reduce} play={play} scrollYProgress={scrollYProgress} />
 
       <div className="relative z-10 mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-12 px-6 pb-16 pt-24 lg:grid-cols-[minmax(0,46ch)_1fr] lg:gap-6">
         <div>

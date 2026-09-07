@@ -14,6 +14,7 @@ import { ResultsScreen } from './components/ResultsScreen';
 import { WordBombStage } from './games/word-bomb/WordBombStage';
 import { SnakeRoyaleBoard } from './games/snake-royale/SnakeRoyaleBoard';
 import { DoodleRelayStage } from './games/doodle-relay/DoodleRelayStage';
+import { ChessStage } from './games/chess/ChessStage';
 import type { GameRoomDetail, GameRoomMember, GameRoomMemberType, RoomStartingPayload } from '@/lib/types';
 
 export function ArcadeRoom() {
@@ -129,6 +130,7 @@ export function ArcadeRoom() {
               maxPlayers: room.maxPlayers,
               visibility: room.visibility,
               fillWithBots: room.fillWithBots,
+              settings: room.settings,
             })
             .then((res) => res.data)
         : Promise.reject(new Error('No room')),
@@ -240,6 +242,8 @@ export function ArcadeRoom() {
           <SnakeRoyaleBoard room={room} onMatchEnd={() => queryClient.invalidateQueries({ queryKey: ['arcade-room', roomId] })} />
         ) : room.gameType === 'doodle_relay' ? (
           <DoodleRelayStage room={room} onMatchEnd={() => queryClient.invalidateQueries({ queryKey: ['arcade-room', roomId] })} />
+        ) : room.gameType === 'chess' ? (
+          <ChessStage room={room} onMatchEnd={() => queryClient.invalidateQueries({ queryKey: ['arcade-room', roomId] })} />
         ) : (
           <p className="py-20 text-center text-ink-400">This game is still loading…</p>
         )

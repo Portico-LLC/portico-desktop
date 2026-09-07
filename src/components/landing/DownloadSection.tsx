@@ -83,7 +83,7 @@ function PlatformSwitch({
     <div
       role="radiogroup"
       aria-label="Choose your platform"
-      className="inline-flex items-center gap-1 rounded-full border border-ink-200 bg-bone-100 p-1"
+      className="inline-flex items-center gap-1 rounded-md border border-ink-200 bg-bone-100 p-1"
     >
       {PLATFORM_ORDER.map((id) => {
         const Mark = MARKS[id];
@@ -97,7 +97,7 @@ function PlatformSwitch({
             aria-checked={active}
             onClick={() => onChange(id)}
             className={cn(
-              'relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium',
+              'relative flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium',
               'transition-colors duration-hover ease-brand focus-ring',
               active ? 'text-bone-50' : 'text-ink-600 hover:text-ink-900'
             )}
@@ -105,7 +105,7 @@ function PlatformSwitch({
             {active && (
               <motion.span
                 layoutId="platform-switch-indicator"
-                className="absolute inset-0 rounded-full bg-pine-900"
+                className="absolute inset-0 rounded-sm bg-pine-900"
                 transition={motionTransition(reduce, springs.snappy)}
               />
             )}

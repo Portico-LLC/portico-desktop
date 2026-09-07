@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import { useInView, useReducedMotion } from 'framer-motion';
 
 /**
@@ -16,9 +17,14 @@ import { useInView, useReducedMotion } from 'framer-motion';
  *  - the user prefers reduced motion. The global `prefers-reduced-motion` CSS
  *    block in `index.css` only zeroes out *CSS* animations, so framer-motion's
  *    JS-driven values have to be gated here explicitly.
+ *
+ * Pass `externalRef` to observe an element a caller already holds a ref to
+ * (e.g. a pointer-tracking panel) instead of forking a second ref onto the
+ * same node.
  */
-export function useSceneVisibility<T extends Element = HTMLDivElement>() {
-  const ref = useRef<T>(null);
+export function useSceneVisibility<T extends Element = HTMLDivElement>(externalRef?: RefObject<T | null>) {
+  const internalRef = useRef<T>(null);
+  const ref = externalRef ?? internalRef;
   const reduce = !!useReducedMotion();
   const inView = useInView(ref, { margin: '200px' });
   const [tabVisible, setTabVisible] = useState(true);

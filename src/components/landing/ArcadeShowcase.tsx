@@ -42,13 +42,13 @@ export function ArcadeShowcase() {
             Deadlines aren't the only thing your team races.
           </h2>
           <p className="max-w-sm text-sm leading-relaxed text-ink-600">
-            Three real-time games live inside the portal — same login, same team, zero extra
+            Four real-time games live inside the portal — same login, same team, zero extra
             tabs. Built for the five minutes between meetings.
           </p>
         </div>
       </motion.div>
 
-      <motion.div className="mt-10 grid gap-4 sm:grid-cols-3" style={reduce ? undefined : { y: gridY }}>
+      <motion.div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" style={reduce ? undefined : { y: gridY }}>
         {GAMES.map((game, i) => (
           <motion.div key={game.label} {...cell(i)}>
             <TiltCard
@@ -94,7 +94,7 @@ export function ArcadeShowcase() {
         <Link to="/signup">
           <Button
             variant="primary"
-            className="transition-[transform,box-shadow] duration-hover ease-brand hover:-translate-y-0.5 hover:shadow-[0_0_28px_-6px_var(--brass-500)]"
+            className="transition-[transform,box-shadow] duration-hover ease-brand hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(18,17,14,0.16)]"
           >
             Play for free
           </Button>

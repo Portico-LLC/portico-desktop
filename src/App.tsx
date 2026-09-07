@@ -127,7 +127,7 @@ export default function App() {
           <Route
             path="/login"
             element={
-              <AuthWrapper>
+              <AuthWrapper variant="login">
                 <Login />
               </AuthWrapper>
             }
@@ -135,7 +135,7 @@ export default function App() {
           <Route
             path="/signup"
             element={
-              <AuthWrapper>
+              <AuthWrapper variant="signup">
                 <Signup />
               </AuthWrapper>
             }

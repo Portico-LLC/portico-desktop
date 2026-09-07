@@ -3,7 +3,7 @@ import { Navigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { Logo } from '@/components/brand/Logo';
 import { AuthBrandPanel } from '@/components/auth/AuthBrandPanel';
-import { Check } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import { useForceLightTheme } from '@/hooks/useForceLightTheme';
 
 const FEATURES = [
@@ -14,10 +14,23 @@ const FEATURES = [
   'Ask Brain about your studio — powered by OpenAI, never used to train it',
 ];
 
-export function AuthLayout({ children }: { children: ReactNode }) {
+const COPY = {
+  login: {
+    headline: 'The front door between your studio and your clients.',
+    subhead:
+      'Projects, files, invoices, and conversations — one calm workspace for the work you ship and the clients you serve.',
+  },
+  signup: {
+    headline: "Set up your studio's front door in minutes.",
+    subhead: 'Invite your first client, import your projects, and send your first invoice — today.',
+  },
+} as const;
+
+export function AuthLayout({ children, variant = 'login' }: { children: ReactNode; variant?: 'login' | 'signup' }) {
   useForceLightTheme();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const role = useAuthStore((s) => s.role);
+  const copy = COPY[variant];
 
   if (isAuthenticated) {
     return <Navigate to={role === 'client' ? '/portal' : '/'} replace />;
@@ -31,17 +44,18 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         content={
           <>
             <h2
+              key={copy.headline}
               className="animate-fade-up font-display text-[40px] font-medium leading-[1.15] tracking-[-0.02em] text-bone-50"
               style={{ animationDelay: '80ms' }}
             >
-              The front door between your studio and your clients.
+              {copy.headline}
             </h2>
             <p
+              key={copy.subhead}
               className="animate-fade-up mt-6 max-w-sm text-[15px] leading-relaxed text-ink-300"
               style={{ animationDelay: '160ms' }}
             >
-              Projects, files, invoices, and conversations — one calm workspace
-              for the work you ship and the clients you serve.
+              {copy.subhead}
             </p>
 
             <ul className="animate-fade-up mt-10 space-y-4" style={{ animationDelay: '240ms' }}>
@@ -54,20 +68,6 @@ export function AuthLayout({ children }: { children: ReactNode }) {
                 </li>
               ))}
             </ul>
-
-            <blockquote
-              className="animate-fade-up relative mt-12 rounded-lg border border-ink-800 bg-ink-900 py-6 pl-6 pr-6"
-              style={{ animationDelay: '320ms' }}
-            >
-              <span aria-hidden className="absolute inset-y-0 left-0 w-[2px] rounded-l-lg bg-brass-500" />
-              <p className="font-display text-lg leading-snug text-bone-100">
-                “Portico replaced four tools for our studio — clients finally have
-                a front door.”
-              </p>
-              <footer className="mt-3 text-xs text-ink-400">
-                Maya Chen · Principal, Common Form Studio
-              </footer>
-            </blockquote>
           </>
         }
         footer={
@@ -86,7 +86,14 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       />
 
       {/* Form panel */}
-      <div className="flex flex-1 items-center justify-center px-6 py-12">
+      <div className="relative flex flex-1 items-center justify-center px-6 py-12">
+        <Link
+          to="/"
+          className="absolute left-6 top-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 transition-colors duration-hover ease-brand hover:text-ink-800"
+        >
+          <ArrowLeft size={16} />
+          Back to home
+        </Link>
         <div className="w-full max-w-md">{children}</div>
       </div>
     </div>

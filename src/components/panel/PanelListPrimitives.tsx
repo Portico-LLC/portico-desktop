@@ -29,20 +29,20 @@ export function PanelListRow<T extends ElementType = 'div'>({
   children,
   ...rest
 }: PanelListRowProps<T>) {
-  const Component = (as ?? 'div') as ElementType;
-  return (
-    <Component
-      className={cn(
-        'flex items-start gap-3 px-3 py-2.5 transition-[transform,background-color,box-shadow] duration-hover ease-brand animate-fade-in',
-        interactive && 'cursor-pointer hover:-translate-y-px hover:bg-ink-50 hover:shadow-sm active:scale-[0.99] active:duration-press',
-        className,
-      )}
-      style={{ animationDelay: `${Math.min(index, MAX_STAGGER_INDEX) * STAGGER_STEP_MS}ms` }}
-      {...rest}
-    >
-      {children}
-    </Component>
-  );
+  // `T` can be any element/component, so JSX's union-prop-checking would otherwise collapse
+  // `children`/`style`/etc. to `never` here — cast through `unknown` to render polymorphically.
+  const Component = (as ?? 'div') as unknown as 'div';
+  const rowProps = {
+    className: cn(
+      'flex items-start gap-3 px-3 py-2.5 transition-[transform,background-color,box-shadow] duration-hover ease-brand animate-fade-in',
+      interactive && 'cursor-pointer hover:-translate-y-px hover:bg-ink-50 hover:shadow-sm active:scale-[0.99] active:duration-press',
+      className,
+    ),
+    style: { animationDelay: `${Math.min(index, MAX_STAGGER_INDEX) * STAGGER_STEP_MS}ms` },
+    children,
+    ...rest,
+  } as unknown as ComponentPropsWithoutRef<'div'>;
+  return <Component {...rowProps} />;
 }
 
 export function PanelEmptyState({ icon, message }: { icon: ReactNode; message: string }) {

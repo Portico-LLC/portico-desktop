@@ -1,6 +1,7 @@
 import { useRef, type PointerEvent, type ReactNode } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion';
-import { ArchMotif } from '@/components/brand/ArchMotif';
+import { AuthSceneBackdrop } from '@/components/auth/AuthSceneBackdrop';
+import { useSceneVisibility } from '@/lib/motion/useSceneVisibility';
 
 interface AuthBrandPanelProps {
   logo: ReactNode;
@@ -25,6 +26,8 @@ export function AuthBrandPanel({ logo, content, footer }: AuthBrandPanelProps) {
   const contentX = useTransform(x, (v) => v * -3);
   const contentY = useTransform(y, (v) => v * -3);
 
+  const { play } = useSceneVisibility(panelRef);
+
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (reduce || !panelRef.current) return;
     const rect = panelRef.current.getBoundingClientRect();
@@ -44,7 +47,7 @@ export function AuthBrandPanel({ logo, content, footer }: AuthBrandPanelProps) {
       onPointerLeave={handlePointerLeave}
       className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-ink-950 px-14 py-12 text-bone-50 lg:flex"
     >
-      <ArchMotif x={x} y={y} reduce={reduce} />
+      <AuthSceneBackdrop x={x} y={y} reduce={reduce} play={play} />
 
       <div className="relative z-10 animate-fade-in">{logo}</div>
 
