@@ -5,14 +5,17 @@ import type { Square } from 'chess.js';
 import { cn } from '@/lib/utils';
 import type { ChessColor } from '@/lib/types';
 import { ChessPromotionModal } from './ChessPromotionModal';
+import { ChessPieceIcon } from './ChessPieceIcon';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'] as const;
 
-const PIECE_GLYPHS: Record<ChessColor, Record<string, string>> = {
-  w: { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕', k: '♔' },
-  b: { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' },
-};
+// Fixed hex, not theme-variable Tailwind classes: a chessboard is a physical-object metaphor
+// that should look the same in light or dark app theme — like a real board doesn't change
+// color when you turn off the room lights. Also guarantees piece/board contrast is never at
+// the mercy of a semantic token shifting under `[data-theme="dark"]`.
+const SQUARE_LIGHT = '#EDE4D3';
+const SQUARE_DARK = '#3E6B56';
 
 interface PendingPromotion {
   from: Square;
@@ -151,11 +154,8 @@ export function ChessBoard({ fen, myColor, lastMove, inCheck, interactive, onMov
                 onClick={() => handleSquareClick(square)}
                 onDragOver={(e) => interactive && e.preventDefault()}
                 onDrop={(e) => handleDrop(square, e)}
-                className={cn(
-                  'relative flex items-center justify-center',
-                  isDark ? 'bg-pine-700' : 'bg-bone-200',
-                  interactive && 'cursor-pointer',
-                )}
+                style={{ backgroundColor: isDark ? SQUARE_DARK : SQUARE_LIGHT }}
+                className={cn('relative flex items-center justify-center', interactive && 'cursor-pointer')}
               >
                 {isLastMove && <div className="pointer-events-none absolute inset-0 bg-brass-400/30" />}
                 {isCheckSquare && <div className="pointer-events-none absolute inset-0 bg-terracotta-500/45" />}
@@ -168,32 +168,26 @@ export function ChessBoard({ fen, myColor, lastMove, inCheck, interactive, onMov
                     draggable={canDrag}
                     onDragStart={(e) => handleDragStart(square, e)}
                     className={cn(
-                      'pointer-events-none leading-none text-[min(9vw,42px)] drop-shadow-sm',
-                      piece.color === 'w' ? 'text-bone-50' : 'text-ink-950',
+                      'pointer-events-none flex h-full w-full select-none items-center justify-center',
                       canDrag && 'pointer-events-auto cursor-grab active:cursor-grabbing',
                     )}
-                    style={{ WebkitTextStroke: piece.color === 'w' ? '1px var(--ink-900)' : '1px var(--bone-200)' }}
                   >
-                    {PIECE_GLYPHS[piece.color][piece.type]}
+                    <ChessPieceIcon type={piece.type} color={piece.color} className="h-[78%] w-[78%] drop-shadow-sm" />
                   </span>
                 )}
 
                 {fileIdx === 0 && (
                   <span
-                    className={cn(
-                      'pointer-events-none absolute left-0.5 top-0.5 text-[9px] font-semibold',
-                      isDark ? 'text-bone-100/50' : 'text-ink-900/40',
-                    )}
+                    className="pointer-events-none absolute left-0.5 top-0.5 text-[9px] font-semibold"
+                    style={{ color: isDark ? 'rgba(250,248,243,0.55)' : 'rgba(28,27,23,0.4)' }}
                   >
                     {rank}
                   </span>
                 )}
                 {rankIdx === 7 && (
                   <span
-                    className={cn(
-                      'pointer-events-none absolute bottom-0.5 right-0.5 text-[9px] font-semibold',
-                      isDark ? 'text-bone-100/50' : 'text-ink-900/40',
-                    )}
+                    className="pointer-events-none absolute bottom-0.5 right-0.5 text-[9px] font-semibold"
+                    style={{ color: isDark ? 'rgba(250,248,243,0.55)' : 'rgba(28,27,23,0.4)' }}
                   >
                     {file}
                   </span>

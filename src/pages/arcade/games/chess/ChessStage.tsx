@@ -60,11 +60,23 @@ export function ChessStage({ room, onMatchEnd }: ChessStageProps) {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 py-4">
-      {room.roundsTotal > 1 && (
-        <p className="text-xs font-medium uppercase tracking-wider text-ink-400">
-          Game {state.roundNumber} of {room.roundsTotal}
-        </p>
-      )}
+      <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wider text-ink-400">
+        {room.roundsTotal > 1 && (
+          <span>
+            Game {state.roundNumber} of {room.roundsTotal}
+          </span>
+        )}
+        {isPlayer && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-bone-100 px-2.5 py-1 normal-case tracking-normal text-ink-700">
+            <span
+              aria-hidden
+              className="h-2.5 w-2.5 rounded-full border border-ink-400"
+              style={{ backgroundColor: myColor === 'w' ? '#FAF8F3' : '#161510' }}
+            />
+            Playing {myColor === 'w' ? 'White' : 'Black'}
+          </span>
+        )}
+      </div>
 
       <PlayerBar
         member={blackMember}
@@ -190,7 +202,11 @@ function PlayerBar({
           {member?.isBot ? <Bot size={14} /> : getInitials(member?.displayName ?? '?')}
         </div>
         <span className="text-sm font-medium text-ink-800">{member?.displayName ?? (color === 'w' ? 'White' : 'Black')}</span>
-        <span aria-hidden className={cn('h-2 w-2 rounded-full', color === 'w' ? 'bg-bone-50 ring-1 ring-ink-400' : 'bg-ink-950')} />
+        <span
+          aria-hidden
+          className="h-2.5 w-2.5 rounded-full border border-ink-400"
+          style={{ backgroundColor: color === 'w' ? '#FAF8F3' : '#161510' }}
+        />
       </div>
       <div className={cn('transition-transform duration-hover ease-brand', active && 'scale-[1.03]')}>{clock}</div>
     </div>

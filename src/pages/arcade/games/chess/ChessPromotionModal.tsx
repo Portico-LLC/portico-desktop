@@ -1,5 +1,6 @@
 import type { ChessColor } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { ChessPieceIcon } from './ChessPieceIcon';
 
 const PROMOTION_PIECES: { id: 'q' | 'r' | 'b' | 'n'; label: string }[] = [
   { id: 'q', label: 'Queen' },
@@ -7,11 +8,6 @@ const PROMOTION_PIECES: { id: 'q' | 'r' | 'b' | 'n'; label: string }[] = [
   { id: 'b', label: 'Bishop' },
   { id: 'n', label: 'Knight' },
 ];
-
-const GLYPHS: Record<ChessColor, Record<'q' | 'r' | 'b' | 'n', string>> = {
-  w: { q: '♕', r: '♖', b: '♗', n: '♘' },
-  b: { q: '♛', r: '♜', b: '♝', n: '♞' },
-};
 
 interface ChessPromotionModalProps {
   color: ChessColor;
@@ -38,14 +34,12 @@ export function ChessPromotionModal({ color, onChoose, onCancel }: ChessPromotio
               type="button"
               onClick={() => onChoose(p.id)}
               className={cn(
-                'flex flex-col items-center gap-1 rounded-md border border-ink-200 bg-bone-100 py-3 text-2xl transition-colors duration-hover ease-brand',
+                'flex flex-col items-center gap-1 rounded-md border border-ink-200 bg-bone-100 py-3 transition-colors duration-hover ease-brand',
                 'hover:border-brass-400 hover:bg-brass-50',
               )}
               aria-label={p.label}
             >
-              <span className={color === 'w' ? 'text-bone-50' : 'text-ink-950'} style={{ WebkitTextStroke: '1px var(--ink-700)' }}>
-                {GLYPHS[color][p.id]}
-              </span>
+              <ChessPieceIcon type={p.id} color={color} className="h-8 w-8" />
               <span className="text-[10px] font-medium text-ink-500">{p.label}</span>
             </button>
           ))}
