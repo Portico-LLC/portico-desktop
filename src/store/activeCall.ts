@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
 import { startAudioCapture, type AudioCaptureHandle } from '@/lib/calls/audioCapture';
+import { useLiveTranscriptStore } from '@/store/liveTranscript';
+import { useAuthStore } from '@/store/auth';
 import type { Call } from '@/lib/types';
 
 export type CallPanelStatus = 'idle' | 'connecting' | 'active' | 'ending' | 'error';
@@ -71,12 +73,32 @@ export const useActiveCallStore = create<ActiveCallState>((set, get) => ({
       set({ audio });
       debugLog('audio capture started');
 
+      const startedAt = Date.now();
       const timer = window.setInterval(() => set((s) => ({ elapsedSeconds: s.elapsedSeconds + 1 })), 1000);
       set({ status: 'active', timer });
+
+      // Strictly best-effort. The recorders above are already running and their
+      // upload is what guarantees a transcript, so a missing Deepgram key, a
+      // blocked socket or a failed worklet must never take the call down with it.
+      try {
+        const { data: capabilities } = await api.get<{ liveTranscription: boolean }>('/calls/capabilities');
+        const token = useAuthStore.getState().token;
+        if (capabilities.liveTranscription && token) {
+          await useLiveTranscriptStore
+            .getState()
+            .begin(created.id, token, audio.streams, () => Date.now() - startedAt);
+          debugLog('live transcription started');
+        }
+      } catch (err) {
+        debugLog('live transcription unavailable — continuing with post-call transcription only', {
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       debugLog('startCall failed', { message });
       get().audio?.stop().catch(() => {});
+      useLiveTranscriptStore.getState().reset();
       stopTimer(get);
       set({ error: message || 'Could not start the call.', status: 'error', audio: null, callId: null, timer: null });
     }
@@ -87,6 +109,10 @@ export const useActiveCallStore = create<ActiveCallState>((set, get) => ({
     set({ status: 'ending' });
     const { audio, callId } = get();
     stopTimer(get);
+    // Flush and close the Deepgram sockets before the tracks stop, so the last
+    // words spoken still come back as final results. The transcript itself stays
+    // on screen after the call for the summary review.
+    useLiveTranscriptStore.getState().finish();
     try {
       const recording = await audio?.stop();
       if (callId) {
@@ -110,6 +136,7 @@ export const useActiveCallStore = create<ActiveCallState>((set, get) => ({
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     const { audio, timer } = useActiveCallStore.getState();
+    useLiveTranscriptStore.getState().reset();
     audio?.stop().catch(() => {});
     if (timer !== null) window.clearInterval(timer);
   });

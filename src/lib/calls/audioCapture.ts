@@ -18,6 +18,11 @@ export interface CallRecordingResult {
 export interface AudioCaptureHandle {
   /** Stops both recorders and resolves with whatever was captured. Idempotent. */
   stop: () => Promise<CallRecordingResult>;
+  /** The live streams behind the recorders, for the optional realtime transcription
+   *  tap. A MediaStream can feed a MediaRecorder and an AudioContext at the same
+   *  time, so reading these does not disturb the recording being uploaded. `system`
+   *  is null wherever loopback capture isn't available (macOS). */
+  streams: { mic: MediaStream; system: MediaStream | null };
 }
 
 interface StartAudioCaptureOptions {
@@ -57,9 +62,14 @@ function stopTrackRecorder(rec: TrackRecording): Promise<Blob> {
 /**
  * Records the employee's mic and the call's system/desktop audio as two
  * SEPARATE recordings (never mixed) so mic = employee, system = the other
- * party can be labeled deterministically once the call ends — no live
- * streaming, no realtime API, just two local recordings uploaded for batch
- * transcription after the call (see store/activeCall.ts).
+ * party can be labeled deterministically. Both are uploaded when the call ends
+ * (see store/activeCall.ts).
+ *
+ * When live transcription is configured, store/liveTranscript.ts additionally
+ * taps `streams` for realtime Deepgram transcription. That tap is purely
+ * additive: these recorders and the upload they feed behave identically whether
+ * or not it is running, so the archived transcript never depends on the network
+ * holding up for the length of a call.
  */
 export async function startAudioCapture(opts: StartAudioCaptureOptions = {}): Promise<AudioCaptureHandle> {
   const debug = (step: string) => opts.onDebug?.(step);
@@ -126,5 +136,5 @@ export async function startAudioCapture(opts: StartAudioCaptureOptions = {}): Pr
     opts.onInterrupted?.();
   });
 
-  return { stop };
+  return { stop, streams: { mic: micStream, system: systemStream } };
 }

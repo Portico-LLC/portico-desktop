@@ -1,23 +1,28 @@
 /** One fixed color per seat index (0-7) — consistent within a match regardless of who's
  *  sitting there, unlike Avatar.tsx's name-hashed AVATAR_COLORS. Six slots reuse existing
  *  semantic palette steps; the last two use the Arcade-only --seat-rose/--seat-slate tokens
- *  defined in index.css. Confined to the canvas + seat grid, never used for buttons/nav/chips. */
+ *  defined in index.css.
+ *
+ *  Two consumers, both identity-coding rather than decoration: the Arcade canvas + seat
+ *  grid, and the live call transcript, where each speaker holds one slot for the length of
+ *  a call (slot 0 is always the employee's own mic). Never used for buttons/nav/chips. */
 export interface SeatColorClasses {
   bg: string;
   ring: string;
   text: string;
   soft: string;
+  border: string;
 }
 
 export const SEAT_COLORS: readonly SeatColorClasses[] = [
-  { bg: 'bg-pine-600', ring: 'ring-pine-600', text: 'text-pine-600', soft: 'bg-pine-100' },
-  { bg: 'bg-brass-600', ring: 'ring-brass-600', text: 'text-brass-600', soft: 'bg-brass-100' },
-  { bg: 'bg-terracotta-500', ring: 'ring-terracotta-500', text: 'text-terracotta-500', soft: 'bg-terracotta-100' },
-  { bg: 'bg-steel-500', ring: 'ring-steel-500', text: 'text-steel-500', soft: 'bg-steel-100' },
-  { bg: 'bg-ochre-500', ring: 'ring-ochre-500', text: 'text-ochre-500', soft: 'bg-ochre-100' },
-  { bg: 'bg-moss-500', ring: 'ring-moss-500', text: 'text-moss-500', soft: 'bg-moss-100' },
-  { bg: 'bg-[var(--seat-rose)]', ring: 'ring-[var(--seat-rose)]', text: 'text-[var(--seat-rose)]', soft: 'bg-[var(--seat-rose-soft)]' },
-  { bg: 'bg-[var(--seat-slate)]', ring: 'ring-[var(--seat-slate)]', text: 'text-[var(--seat-slate)]', soft: 'bg-[var(--seat-slate-soft)]' },
+  { bg: 'bg-pine-600', ring: 'ring-pine-600', text: 'text-pine-600', soft: 'bg-pine-100', border: 'border-pine-600' },
+  { bg: 'bg-brass-600', ring: 'ring-brass-600', text: 'text-brass-600', soft: 'bg-brass-100', border: 'border-brass-600' },
+  { bg: 'bg-terracotta-500', ring: 'ring-terracotta-500', text: 'text-terracotta-500', soft: 'bg-terracotta-100', border: 'border-terracotta-500' },
+  { bg: 'bg-steel-500', ring: 'ring-steel-500', text: 'text-steel-500', soft: 'bg-steel-100', border: 'border-steel-500' },
+  { bg: 'bg-ochre-500', ring: 'ring-ochre-500', text: 'text-ochre-500', soft: 'bg-ochre-100', border: 'border-ochre-500' },
+  { bg: 'bg-moss-500', ring: 'ring-moss-500', text: 'text-moss-500', soft: 'bg-moss-100', border: 'border-moss-500' },
+  { bg: 'bg-[var(--seat-rose)]', ring: 'ring-[var(--seat-rose)]', text: 'text-[var(--seat-rose)]', soft: 'bg-[var(--seat-rose-soft)]', border: 'border-[var(--seat-rose)]' },
+  { bg: 'bg-[var(--seat-slate)]', ring: 'ring-[var(--seat-slate)]', text: 'text-[var(--seat-slate)]', soft: 'bg-[var(--seat-slate-soft)]', border: 'border-[var(--seat-slate)]' },
 ];
 
 export function seatColor(seatIndex: number | null | undefined): SeatColorClasses {

@@ -247,6 +247,22 @@ export interface Project {
 export type CallStatus = 'pending' | 'active' | 'ended' | 'failed';
 export type CallPlatform = 'desktop' | 'google_meet' | 'zoom' | 'microsoft_teams';
 
+/** Structured post-call output. Produced with no tools available to the model, so
+ *  every action item is a proposal until someone confirms it. */
+export interface CallDigest {
+  summary: string;
+  decisions: { text: string }[];
+  actionItems: {
+    title: string;
+    description?: string;
+    ownerHint?: string | null;
+    dueDateHint?: string | null;
+    confidence?: number;
+  }[];
+  risks: { text: string; severity: 'low' | 'medium' | 'high' }[];
+  followUps: { text: string }[];
+}
+
 export interface Call {
   id: string;
   projectId?: string;
@@ -256,6 +272,10 @@ export interface Call {
   externalMeetingUrl?: string;
   summary?: string;
   externalTranscriptText?: string;
+  digest?: CallDigest;
+  /** Set once a human has picked which action items become tasks. */
+  actionsConfirmedAt?: string;
+  liveTranscriptionUsed?: boolean;
   startedAt?: string;
   endedAt?: string;
   durationSeconds?: number;

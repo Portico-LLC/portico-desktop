@@ -12,6 +12,7 @@ export const FALLBACK_PANEL_PREFS: PanelPrefs = {
   shortcut: 'CommandOrControl+Shift+P',
   activeTab: 'tasks',
   notificationsMuted: false,
+  meetingDetection: false,
 };
 
 interface PanelPrefsState {

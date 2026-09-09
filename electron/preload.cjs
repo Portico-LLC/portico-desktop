@@ -45,6 +45,17 @@ contextBridge.exposeInMainWorld('portico', {
   theme: {
     setNative: (resolved) => ipcRenderer.send('theme:set-native', resolved),
   },
+  calls: {
+    getDetectionState: () => ipcRenderer.invoke('calls:detection-state'),
+    setDetectionEnabled: (enabled) => ipcRenderer.invoke('calls:set-detection-enabled', enabled),
+    dismissDetection: (key) => ipcRenderer.send('calls:dismiss-detection', key),
+    setCallActive: (active) => ipcRenderer.send('calls:set-active', active),
+    onMeetingDetected: (cb) => {
+      const handler = (_e, detection) => cb(detection);
+      ipcRenderer.on('calls:meeting-detected', handler);
+      return () => ipcRenderer.off('calls:meeting-detected', handler);
+    },
+  },
   recorder: {
     getSources: () => ipcRenderer.invoke('recorder:get-sources'),
     chooseSource: (sourceId) => ipcRenderer.send('recorder:choose-source', sourceId),

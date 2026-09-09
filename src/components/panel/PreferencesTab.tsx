@@ -160,6 +160,23 @@ export function PreferencesTab() {
       </div>
 
       <div>
+        <div className="flex items-center justify-between">
+          <SectionLabel>Detect meetings</SectionLabel>
+          <Switch
+            checked={prefs.meetingDetection}
+            onCheckedChange={(meetingDetection) => {
+              setPref({ meetingDetection });
+              void window.portico?.calls?.setDetectionEnabled(meetingDetection);
+            }}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-ink-400">
+          Offers to record when a Zoom, Teams, Meet, or Slack call starts. Checks which windows are open — never
+          starts recording on its own. Windows only.
+        </p>
+      </div>
+
+      <div>
         <SectionLabel>Global shortcut</SectionLabel>
         <div className="flex items-center gap-2">
           <button

@@ -18,6 +18,7 @@ const {
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
+const { MeetingDetector } = require('./meeting-detector.cjs');
 
 const isDev = !app.isPackaged;
 
@@ -120,6 +121,13 @@ function createWindow() {
 
 // ── Panel window: preferences ────────────────────────────────────────────────
 
+// Notices an in-progress Zoom/Teams/Meet/Slack call and offers to record it. The
+// panel is the only surface it talks to, and it never starts anything itself.
+const meetingDetector = new MeetingDetector((detection) => {
+  panelWindow?.webContents.send('calls:meeting-detected', detection);
+  mainWindow?.webContents.send('calls:meeting-detected', detection);
+});
+
 const PREFS_PATH = path.join(app.getPath('userData'), 'panel-preferences.json');
 
 const DEFAULT_PANEL_PREFS = {
@@ -133,6 +141,9 @@ const DEFAULT_PANEL_PREFS = {
   shortcut: 'CommandOrControl+Shift+P',
   activeTab: 'tasks',
   notificationsMuted: false,
+  // Off until the user opts in: this polls running window titles, which is not
+  // something to switch on behind someone's back.
+  meetingDetection: false,
 };
 
 const SIZE_PRESETS = {
@@ -373,10 +384,12 @@ function showPanel() {
   if (!panelWindow || panelWindow.isDestroyed()) createPanelWindow();
   panelWindow.show();
   panelWindow.focus();
+  meetingDetector.setPanelVisible(true);
 }
 
 function hidePanel() {
   panelWindow?.hide();
+  meetingDetector.setPanelVisible(false);
 }
 
 function togglePanel() {
@@ -582,6 +595,16 @@ function registerIpcHandlers() {
     if (resolved === 'light' || resolved === 'dark') nativeTheme.themeSource = resolved;
   });
 
+  ipcMain.handle('calls:detection-state', () => meetingDetector.getState());
+  ipcMain.handle('calls:set-detection-enabled', (_e, enabled) => {
+    meetingDetector.setEnabled(!!enabled);
+    return meetingDetector.getState();
+  });
+  ipcMain.on('calls:dismiss-detection', (_e, key) => meetingDetector.dismiss(key));
+  // While a call is running there is nothing to suggest, and polling would only
+  // burn CPU next to a live transcription session.
+  ipcMain.on('calls:set-active', (_e, active) => meetingDetector.setSuspended(!!active));
+
   ipcMain.handle('prefs:get', () => panelPrefs);
   ipcMain.handle('prefs:set', (_e, patch) => {
     const previousBlurMode = panelPrefs.blurMode;
@@ -632,6 +655,7 @@ app.whenReady().then(() => {
 
   panelPrefs = loadPanelPrefs();
   registerIpcHandlers();
+  meetingDetector.setEnabled(panelPrefs.meetingDetection === true);
   if (!tryRegisterShortcut(panelPrefs.shortcut)) {
     panelPrefs.shortcut = DEFAULT_PANEL_PREFS.shortcut;
     tryRegisterShortcut(panelPrefs.shortcut);

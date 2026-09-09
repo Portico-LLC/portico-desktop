@@ -1,15 +1,18 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { Phone, PhoneOff, Loader2, AlertCircle, Video, ChevronDown, ChevronUp, Link2, Mic } from 'lucide-react';
+import { Phone, PhoneOff, Loader2, AlertCircle, Video, ChevronDown, ChevronUp, Link2, Mic, Radio, X, Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useActiveCallStore } from '@/store/activeCall';
+import { useLiveTranscriptStore } from '@/store/liveTranscript';
+import { LiveTranscript } from '@/components/calls/LiveTranscript';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { cn } from '@/lib/utils';
 import type { Call, CallPlatform } from '@/lib/types';
+import type { MeetingDetection } from '@/types/electron';
 
 interface CallPanelProps {
   projectId: string;
@@ -45,12 +48,15 @@ const STATUS_BADGE: Record<Call['status'], { label: string; variant: 'neutral' |
 };
 
 /**
- * Call assistant. Records the employee's mic and the call's system audio
- * locally as two separate tracks (see lib/calls/audioCapture) and uploads
- * them for transcription once the call ends — no live streaming, no
- * realtime API. The call lifecycle itself lives in store/activeCall.ts, not
- * here — see that file for why. See PORTICO_MEETING_BOT_PLAN for the
- * architecture.
+ * Call assistant. Records the employee's mic and the call's system audio locally
+ * as two separate tracks (see lib/calls/audioCapture) and uploads them when the
+ * call ends. Where live transcription is configured, the same streams are also
+ * tapped for a realtime transcript (store/liveTranscript.ts); where it isn't, the
+ * post-call batch transcription is the whole story and this panel just shows the
+ * recording state.
+ *
+ * The call lifecycle itself lives in store/activeCall.ts, not here — see that
+ * file for why.
  */
 export function CallPanel({ projectId, clientId, projectName, className }: CallPanelProps) {
   const queryClient = useQueryClient();
@@ -64,6 +70,10 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
   const elapsedSeconds = useActiveCallStore((s) => s.elapsedSeconds);
   const storeStartCall = useActiveCallStore((s) => s.startCall);
   const storeEndCall = useActiveCallStore((s) => s.endCall);
+  // False whenever Deepgram isn't configured or the live session failed to open —
+  // the call still records and is transcribed after the fact, so this only
+  // decides whether a live transcript is worth showing.
+  const liveAvailable = useLiveTranscriptStore((s) => s.available);
 
   const historyQuery = useQuery({
     queryKey: ['calls', projectId],
@@ -102,6 +112,29 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
   }, [joinUrl, joinPlatform, projectId, clientId, queryClient]);
 
   const isBusy = status === 'connecting' || status === 'ending';
+  const [detection, setDetection] = useState<MeetingDetection | null>(null);
+
+  useEffect(() => {
+    const calls = window.portico?.calls;
+    if (!calls) return;
+    return calls.onMeetingDetected((next) => setDetection(next));
+  }, []);
+
+  // Detection is pointless while a call is already running, and polling window
+  // titles next to a live transcription session is just wasted CPU.
+  useEffect(() => {
+    window.portico?.calls?.setCallActive(status === 'active' || status === 'connecting');
+  }, [status]);
+
+  const dismissDetection = useCallback(() => {
+    if (detection) window.portico?.calls?.dismissDetection(detection.key);
+    setDetection(null);
+  }, [detection]);
+
+  const startFromDetection = useCallback(async () => {
+    setDetection(null);
+    await startCall();
+  }, [startCall]);
 
   return (
     <div className={cn('flex h-full flex-col', className)}>
@@ -181,6 +214,26 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
         </div>
       )}
 
+      {detection && status === 'idle' && (
+        <div className="mx-4 mt-3 flex items-center gap-2 rounded-md border border-brass-500/30 bg-brass-100/50 px-3 py-2.5">
+          <Radio size={14} className="flex-shrink-0 text-brass-600" />
+          <p className="min-w-0 flex-1 text-xs text-ink-700">
+            <span className="font-medium">{detection.label}</span> call detected
+          </p>
+          <Button variant="secondary" size="sm" onClick={startFromDetection} disabled={isBusy}>
+            Record
+          </Button>
+          <button
+            type="button"
+            onClick={dismissDetection}
+            className="flex-shrink-0 cursor-pointer text-ink-400 hover:text-ink-600"
+            title="Not now"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {error && (
         <div className="mx-4 mt-3 flex items-start gap-2 rounded-md border border-terracotta-500/30 bg-terracotta-100/60 px-3 py-2.5 text-xs text-terracotta-600">
           <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
@@ -190,17 +243,20 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {status === 'idle' && <CallHistoryList calls={historyQuery.data ?? []} isLoading={historyQuery.isLoading} />}
-        {status === 'active' && (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-terracotta-100">
-              <Mic size={20} className="animate-pulse text-terracotta-500" />
-            </span>
-            <p className="text-sm font-medium text-ink-700">Recording your mic and this call's audio</p>
-            <p className="max-w-[220px] text-xs text-ink-400">
-              The transcript and summary will appear in Recent calls once you end the call.
-            </p>
-          </div>
-        )}
+        {status === 'active' &&
+          (liveAvailable ? (
+            <LiveTranscript className="h-full" />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-terracotta-100">
+                <Mic size={20} className="animate-pulse text-terracotta-500" />
+              </span>
+              <p className="text-sm font-medium text-ink-700">Recording your mic and this call's audio</p>
+              <p className="max-w-[220px] text-xs text-ink-400">
+                The transcript and summary will appear in Recent calls once you end the call.
+              </p>
+            </div>
+          ))}
         {status === 'ending' && (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
             <Loader2 size={20} className="animate-spin text-ink-400" />
@@ -234,6 +290,111 @@ function CallHistoryList({ calls, isLoading }: { calls: Call[]; isLoading: boole
   );
 }
 
+/**
+ * The digest's decisions and risks are read-only records of what was said. Its
+ * action items are proposals only — the summarizer runs with no tools at all, so
+ * nothing reaches a project until someone ticks a box here and presses the button.
+ */
+function CallDigestReview({ call }: { call: Call }) {
+  const queryClient = useQueryClient();
+  const digest = call.digest!;
+  const [checked, setChecked] = useState<Set<number>>(new Set());
+  const [submitting, setSubmitting] = useState(false);
+  const confirmed = !!call.actionsConfirmedAt;
+
+  const toggle = (index: number) =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+
+  const confirm = async () => {
+    if (!checked.size) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/calls/${call.id}/actions/confirm`, { indexes: [...checked] });
+      queryClient.invalidateQueries({ queryKey: ['calls', call.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      {digest.decisions.length > 0 && (
+        <div>
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-400">Decisions</p>
+          <ul className="space-y-0.5">
+            {digest.decisions.map((d, i) => (
+              <li key={i} className="text-xs text-ink-600">
+                • {d.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {digest.risks.length > 0 && (
+        <div>
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-400">Risks</p>
+          <ul className="space-y-0.5">
+            {digest.risks.map((r, i) => (
+              <li key={i} className="text-xs text-ink-600">
+                <span className={cn('font-medium', r.severity === 'high' ? 'text-terracotta-600' : 'text-ochre-600')}>
+                  {r.severity}
+                </span>{' '}
+                — {r.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {digest.actionItems.length > 0 && (
+        <div>
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-400">
+            Action items {confirmed && <span className="text-pine-600">· added</span>}
+          </p>
+          <div className="space-y-1">
+            {digest.actionItems.map((item, i) => (
+              <label
+                key={i}
+                className={cn('flex items-start gap-2 text-xs text-ink-600', !confirmed && 'cursor-pointer')}
+              >
+                <input
+                  type="checkbox"
+                  disabled={confirmed || submitting}
+                  checked={checked.has(i)}
+                  onChange={() => toggle(i)}
+                  className="mt-0.5 accent-pine-600"
+                />
+                <span className="min-w-0">
+                  {item.title}
+                  {(item.ownerHint || item.dueDateHint) && (
+                    <span className="text-ink-400">
+                      {' '}
+                      ({[item.ownerHint, item.dueDateHint].filter(Boolean).join(', ')})
+                    </span>
+                  )}
+                </span>
+              </label>
+            ))}
+          </div>
+          {!confirmed && (
+            <Button variant="secondary" size="sm" className="mt-2" onClick={confirm} disabled={!checked.size || submitting}>
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {checked.size ? `Create ${checked.size} task${checked.size > 1 ? 's' : ''}` : 'Select items'}
+            </Button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 function CallHistoryRow({ call }: { call: Call }) {
   const [expanded, setExpanded] = useState(false);
   const badge = STATUS_BADGE[call.status];
@@ -263,6 +424,8 @@ function CallHistoryRow({ call }: { call: Call }) {
               <p className="text-xs text-ink-600">{call.summary}</p>
             </div>
           )}
+
+          {call.digest && <CallDigestReview call={call} />}
 
           <div>
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-400">Transcript</p>

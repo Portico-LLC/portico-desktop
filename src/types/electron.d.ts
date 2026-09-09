@@ -9,6 +9,22 @@ export interface PanelPrefs {
   shortcut: string;
   activeTab: 'tasks' | 'calendar' | 'messages' | 'projects' | 'vault' | 'preferences' | 'record' | 'calls' | 'radar' | 'steward';
   notificationsMuted: boolean;
+  meetingDetection: boolean;
+}
+
+/** A meeting the desktop detector believes is currently in progress. `key`
+ *  identifies this specific meeting so dismissing it doesn't silence the next one. */
+export interface MeetingDetection {
+  app: 'zoom' | 'microsoft_teams' | 'google_meet' | 'slack';
+  label: string;
+  key: string;
+}
+
+export interface MeetingDetectionState {
+  enabled: boolean;
+  /** Window-title detection is Windows-only; macOS would need Accessibility consent. */
+  supported: boolean;
+  current: string | null;
 }
 
 export interface ShortcutRebindResult {
@@ -57,6 +73,15 @@ export interface PorticoBridge {
     // file dialogs) to the renderer's resolved theme. The renderer stores its
     // own preference itself; this is not a round trip.
     setNative: (resolved: 'light' | 'dark') => void;
+  };
+  calls: {
+    getDetectionState: () => Promise<MeetingDetectionState>;
+    setDetectionEnabled: (enabled: boolean) => Promise<MeetingDetectionState>;
+    /** Suppresses this specific meeting for 30 minutes. */
+    dismissDetection: (key: string) => void;
+    /** Pauses detection while a call is already being recorded. */
+    setCallActive: (active: boolean) => void;
+    onMeetingDetected: (cb: (detection: MeetingDetection) => void) => () => void;
   };
   recorder: {
     // Only used inside the dedicated /source-picker window (see electron/main.cjs).
