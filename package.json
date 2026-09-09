@@ -1,7 +1,7 @@
 {
   "name": "portico-desktop",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Portico — desktop app for Windows and macOS",
   "author": "Portico",
   "main": "electron/main.cjs",

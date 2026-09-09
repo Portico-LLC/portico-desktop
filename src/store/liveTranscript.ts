@@ -12,6 +12,21 @@ export interface Utterance {
   startMs: number;
   endMs: number;
   sequence: number;
+  confidence?: number;
+  /** Two remote people were talking over each other — the speaker attribution on
+   *  this line is a guess, and the UI says so. */
+  overlapped?: boolean;
+}
+
+/** A suggested reply to something the client just asked. Never persisted, never
+ *  sent anywhere — it exists only in this store for as long as it's on screen. */
+export interface CoachSuggestion {
+  id: string;
+  kind: 'question' | 'objection';
+  headline: string;
+  talkingPoints: string[];
+  cautions: string[];
+  createdAt: string;
 }
 
 export interface Speaker {
@@ -33,6 +48,10 @@ interface LiveTranscriptState {
   interim: Record<CallTrack, string>;
   streamState: Record<CallTrack, StreamState>;
   available: boolean;
+  /** At most one at a time. A stack of stale advice in a 360px panel is unusable,
+   *  so a new suggestion replaces the previous one. */
+  suggestion: CoachSuggestion | null;
+  dismissSuggestion: () => void;
 
   begin: (callId: string, token: string, streams: { mic: MediaStream; system: MediaStream | null }, elapsedMs: () => number) => Promise<void>;
   pushFrame: (track: CallTrack, frame: ArrayBuffer) => void;
@@ -63,6 +82,9 @@ export const useLiveTranscriptStore = create<LiveTranscriptState>((set, get) => 
   interim: { mic: '', system: '' },
   streamState: { mic: 'stopped', system: 'stopped' },
   available: false,
+  suggestion: null,
+
+  dismissSuggestion: () => set({ suggestion: null }),
 
   begin: async (callId, token, streams, elapsedMs) => {
     set({
@@ -89,6 +111,11 @@ export const useLiveTranscriptStore = create<LiveTranscriptState>((set, get) => 
         utterances: [...s.utterances, payload.utterance].slice(-MAX_RENDERED_UTTERANCES),
         speakers: speakerRecord(payload.speakers),
       }));
+    });
+
+    socket.on('call:coach-suggestion', (payload: { callId: string; suggestion: CoachSuggestion }) => {
+      if (payload.callId !== get().callId) return;
+      set({ suggestion: payload.suggestion });
     });
 
     socket.on('call:speaker-updated', (payload: { callId: string; speaker: Speaker }) => {
@@ -131,13 +158,13 @@ export const useLiveTranscriptStore = create<LiveTranscriptState>((set, get) => 
     runtime.taps = [];
     for (const stream of Object.values(runtime.streams)) stream?.stop();
     runtime.streams = {};
-    set({ interim: { mic: '', system: '' }, streamState: { mic: 'stopped', system: 'stopped' } });
+    set({ interim: { mic: '', system: '' }, streamState: { mic: 'stopped', system: 'stopped' }, suggestion: null });
   },
 
   reset: () => {
     get().finish();
     disconnectCallsSocket();
     runtime.socket = null;
-    set({ callId: null, utterances: [], speakers: {}, available: false });
+    set({ callId: null, utterances: [], speakers: {}, available: false, suggestion: null });
   },
 }));

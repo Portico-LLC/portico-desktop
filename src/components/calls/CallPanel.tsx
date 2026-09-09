@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { Phone, PhoneOff, Loader2, AlertCircle, Video, ChevronDown, ChevronUp, Link2, Mic, Radio, X, Check } from 'lucide-react';
+import { Phone, PhoneOff, Loader2, AlertCircle, ChevronDown, ChevronUp, Mic, Radio, X, Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useActiveCallStore } from '@/store/activeCall';
 import { useLiveTranscriptStore } from '@/store/liveTranscript';
 import { LiveTranscript } from '@/components/calls/LiveTranscript';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
 import { cn } from '@/lib/utils';
 import type { Call, CallPlatform } from '@/lib/types';
 import type { MeetingDetection } from '@/types/electron';
@@ -27,12 +25,8 @@ function formatElapsed(totalSeconds: number): string {
   return `${m}:${s}`;
 }
 
-const EXTERNAL_PLATFORMS: { value: Exclude<CallPlatform, 'desktop'>; label: string }[] = [
-  { value: 'google_meet', label: 'Google Meet' },
-  { value: 'zoom', label: 'Zoom' },
-  { value: 'microsoft_teams', label: 'Microsoft Teams' },
-];
-
+// Non-desktop values only appear on calls recorded before the meeting-bot path was
+// removed; they are kept so that history still renders.
 const PLATFORM_LABELS: Record<CallPlatform, string> = {
   desktop: 'Desktop call',
   google_meet: 'Google Meet',
@@ -60,7 +54,6 @@ const STATUS_BADGE: Record<Call['status'], { label: string; variant: 'neutral' |
  */
 export function CallPanel({ projectId, clientId, projectName, className }: CallPanelProps) {
   const queryClient = useQueryClient();
-  const [joinFormOpen, setJoinFormOpen] = useState(false);
 
   // Call lifecycle lives in a module-level store, not component state — see
   // store/activeCall.ts for why (CallPanel remounting mid-call was silently
@@ -90,26 +83,6 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
     await storeEndCall();
     queryClient.invalidateQueries({ queryKey: ['calls', projectId] });
   }, [storeEndCall, queryClient, projectId]);
-
-  const [joinPlatform, setJoinPlatform] = useState<Exclude<CallPlatform, 'desktop'>>('google_meet');
-  const [joinUrl, setJoinUrl] = useState('');
-  const [joinSubmitting, setJoinSubmitting] = useState(false);
-
-  const joinExternalCall = useCallback(async () => {
-    if (!joinUrl.trim()) return;
-    setJoinSubmitting(true);
-    useActiveCallStore.setState({ error: null });
-    try {
-      await api.post('/calls/external', { projectId, clientId, platform: joinPlatform, meetingUrl: joinUrl.trim() });
-      setJoinUrl('');
-      setJoinFormOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['calls', projectId] });
-    } catch (err) {
-      useActiveCallStore.setState({ error: err instanceof Error ? err.message : 'Could not dispatch the meeting bot.' });
-    } finally {
-      setJoinSubmitting(false);
-    }
-  }, [joinUrl, joinPlatform, projectId, clientId, queryClient]);
 
   const isBusy = status === 'connecting' || status === 'ending';
   const [detection, setDetection] = useState<MeetingDetection | null>(null);
@@ -163,56 +136,13 @@ export function CallPanel({ projectId, clientId, projectName, className }: CallP
               End
             </Button>
           ) : (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setJoinFormOpen((v) => !v)}
-                disabled={isBusy}
-                title="Join an external Google Meet, Zoom, or Teams call"
-              >
-                <Link2 size={14} />
-              </Button>
-              <Button variant="primary" size="sm" onClick={startCall} disabled={isBusy}>
-                {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Phone size={14} />}
-                {isBusy ? 'Working…' : 'Start call'}
-              </Button>
-            </>
+            <Button variant="primary" size="sm" onClick={startCall} disabled={isBusy}>
+              {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Phone size={14} />}
+              {isBusy ? 'Working…' : 'Start call'}
+            </Button>
           )}
         </div>
       </div>
-
-      {joinFormOpen && status === 'idle' && (
-        <div className="flex-shrink-0 space-y-2 border-b border-ink-200 bg-ink-50 px-4 py-3">
-          <p className="text-xs font-medium text-ink-700">Join an external meeting</p>
-          <p className="text-[11px] text-ink-400">
-            A bot joins, records the whole call, and a summary appears here once it's done.
-          </p>
-          <div className="flex gap-2">
-            <Select
-              value={joinPlatform}
-              onChange={(e) => setJoinPlatform(e.target.value as Exclude<CallPlatform, 'desktop'>)}
-              className="w-36 flex-shrink-0"
-            >
-              {EXTERNAL_PLATFORMS.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </Select>
-            <Input
-              value={joinUrl}
-              onChange={(e) => setJoinUrl(e.target.value)}
-              placeholder="Meeting URL"
-              className="flex-1"
-            />
-          </div>
-          <Button variant="secondary" size="sm" onClick={joinExternalCall} disabled={joinSubmitting || !joinUrl.trim()}>
-            {joinSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Video size={14} />}
-            Dispatch bot
-          </Button>
-        </div>
-      )}
 
       {detection && status === 'idle' && (
         <div className="mx-4 mt-3 flex items-center gap-2 rounded-md border border-brass-500/30 bg-brass-100/50 px-3 py-2.5">

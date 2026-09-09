@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowDown, Check, X } from 'lucide-react';
 import { useLiveTranscriptStore, type Utterance } from '@/store/liveTranscript';
+import { CoachCard } from '@/components/calls/CoachCard';
 import { seatColor } from '@/lib/arcade/playerColors';
 import { cn } from '@/lib/utils';
 
@@ -74,7 +75,10 @@ export function LiveTranscript({ className }: { className?: string }) {
 
   return (
     <div className={cn('relative flex h-full flex-col', className)}>
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 space-y-2.5 overflow-y-auto pr-0.5">
+      <CoachCard />
+      {/* min-h-0 lets this shrink beneath its content so the coach card above can
+          take its share without pushing the transcript off the bottom. */}
+      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-0.5">
         {rows.length === 0 && !pendingInterim && (
           <p className="pt-8 text-center text-xs text-ink-400">
             {connecting ? 'Connecting to transcription…' : 'Listening — the transcript appears as people speak.'}
@@ -169,11 +173,26 @@ function TranscriptRow({ utterance, showSpeaker, speaker, reduceMotion, isEditin
             </button>
           )}
           <span className="font-mono text-[10px] tabular-nums text-ink-300">{formatStamp(utterance.startMs)}</span>
+          {utterance.overlapped && (
+            <span className="text-[10px] text-ochre-600" title="Two people spoke at once — who said this is a guess">
+              overlapping
+            </span>
+          )}
         </div>
       )}
-      <p className="text-xs leading-relaxed text-ink-700">{utterance.text}</p>
+      {/* Muted rather than hidden: a line the model was unsure of is still worth
+          reading, it just shouldn't look as certain as the rest. */}
+      <p className={cn('text-xs leading-relaxed', isUncertain(utterance) ? 'text-ink-500' : 'text-ink-700')}>
+        {utterance.text}
+      </p>
     </motion.div>
   );
+}
+
+/** Mirrors LOW_CONFIDENCE on the backend, which is where the keep/drop decision is
+ *  made. Anything that reaches here was kept; this only affects how sure it looks. */
+function isUncertain(utterance: Utterance): boolean {
+  return utterance.overlapped === true || (utterance.confidence !== undefined && utterance.confidence < 0.75);
 }
 
 function SpeakerRename({ initial, onSubmit, onCancel }: { initial: string; onSubmit: (name: string) => void; onCancel: () => void }) {
