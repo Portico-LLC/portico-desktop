@@ -50,6 +50,9 @@ const MAX_RECONNECT_ATTEMPTS = 8;
 const BASE_BACKOFF_MS = 250;
 const MAX_BACKOFF_MS = 4000;
 const KEEPALIVE_MS = 5000;
+/** 401/403 = this caller may not stream; 404 = the call is gone; 503 = live
+ *  transcription isn't configured on the server. None are worth a retry. */
+const NON_RETRYABLE_TOKEN_STATUSES = new Set([401, 403, 404, 503]);
 
 /** Splits a finalized segment into contiguous single-speaker runs. Deepgram labels
  *  speakers per *word*, so one finalized segment can legitimately span a handover
@@ -101,7 +104,16 @@ export class DeepgramTrackStream {
       );
       accessToken = data.accessToken;
       model = data.model;
-    } catch {
+    } catch (err) {
+      // "Not configured" and "not allowed" don't get better by asking again —
+      // retrying those eight times just delays the fallback to post-call
+      // transcription, which is already running regardless.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status && NON_RETRYABLE_TOKEN_STATUSES.has(status)) {
+        this.stopped = true;
+        this.opts.onState('stopped');
+        return;
+      }
       this.scheduleReconnect();
       return;
     }
