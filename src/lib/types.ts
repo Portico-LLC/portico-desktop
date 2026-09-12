@@ -394,6 +394,7 @@ export interface TeamMemberOption {
   type: TeamMemberType;
   id: string;
   name: string;
+  avatarUrl?: string | null;
 }
 
 export interface TeamChannelSummary {
@@ -404,6 +405,42 @@ export interface TeamChannelSummary {
   lastMessage: { body: string; senderName: string; createdAt: string } | null;
   unreadCount: number;
   updatedAt: string;
+  /** Everything below is additive. It must stay optional so the Electron panel's
+   *  MessagesTab, which does not consume any of it, keeps compiling untouched. */
+  topic?: string | null;
+  isPrivate?: boolean;
+  archivedAt?: string | null;
+  /** The other person in a DM, so the row can show their presence and focus state. */
+  counterpart?: { type: TeamMemberType; id: string } | null;
+  /** Anchors the "New messages" divider. */
+  firstUnreadMessageId?: string | null;
+}
+
+export type ChatAttachmentType = 'image' | 'video' | 'audio' | 'pdf' | 'other';
+
+export interface ChatAttachment {
+  id: string;
+  filename: string;
+  mimeType: string;
+  fileType: ChatAttachmentType;
+  sizeBytes: number;
+  width: number | null;
+  height: number | null;
+  durationSeconds: number | null;
+}
+
+export interface ChatReactionActor {
+  type: TeamMemberType;
+  id: string;
+  name: string;
+}
+
+export interface ChatReaction {
+  emoji: string;
+  count: number;
+  /** Every reactor. The client works out "did I react?" itself, which is what lets the same
+   *  payload serve both the REST fetch and the socket broadcast. */
+  actors: ChatReactionActor[];
 }
 
 export interface TeamChannelMessage {
@@ -414,6 +451,53 @@ export interface TeamChannelMessage {
   senderName: string;
   body: string;
   createdAt: string;
+  senderAvatarUrl?: string | null;
+  editedAt?: string | null;
+  isDeleted?: boolean;
+  parentMessageId?: string | null;
+  replyCount?: number;
+  lastReplyAt?: string | null;
+  threadParticipants?: ChatReactionActor[];
+  isPinned?: boolean;
+  pinnedAt?: string | null;
+  reactions?: ChatReaction[];
+  attachments?: ChatAttachment[];
+}
+
+export type PresenceStatus = 'online' | 'away' | 'offline';
+
+export interface PresenceEntry {
+  actorType: TeamMemberType;
+  actorId: string;
+  status: PresenceStatus;
+  focusMode: boolean;
+  focusUntil: string | null;
+  focusMessage: string | null;
+  focusEmoji: string | null;
+  lastSeenAt: string | null;
+}
+
+/** The reduced shape clients receive for people they share a channel with — no status text. */
+export type PresencePeek = Pick<PresenceEntry, 'actorType' | 'actorId' | 'status' | 'focusMode'>;
+
+export interface FocusDigest {
+  releasedCount: number;
+  byChannel: { channelId: string; count: number }[];
+}
+
+export interface BrowsableChannel {
+  id: string;
+  name: string;
+  topic: string | null;
+  memberCount: number;
+  isMember: boolean;
+  archivedAt: string | null;
+}
+
+export interface ChannelMemberEntry {
+  type: TeamMemberType;
+  id: string;
+  name: string;
 }
 
 export type BrainGraphNodeType = 'client' | 'project' | 'task' | 'invoice' | 'conversation' | 'employee';

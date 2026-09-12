@@ -7,7 +7,9 @@ import type { TeamChannelSummary, TeamChannelMessage } from '@/lib/types';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { PanelListRow, PanelEmptyState, PanelSkeletonList } from '@/components/panel/PanelListPrimitives';
-import { Send, ChevronLeft, MessageSquare } from 'lucide-react';
+import { PresenceBadge } from '@/components/ui/PresenceDot';
+import { usePresenceStore, presenceStateOf } from '@/store/presence';
+import { Send, ChevronLeft, MessageSquare, Paperclip } from 'lucide-react';
 import { format } from 'date-fns';
 
 const THREAD_LIMIT = 15;
@@ -141,7 +143,7 @@ export function MessagesTab() {
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
         .map((channel, index) => (
           <PanelListRow as="button" key={channel.id} index={index} onClick={() => setSelectedId(channel.id)} className="w-full text-left">
-            <Avatar name={channel.name} size="sm" />
+            <ChannelAvatar channel={channel} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <p className="truncate text-sm font-medium text-ink-900">
@@ -156,6 +158,19 @@ export function MessagesTab() {
           </PanelListRow>
         ))}
     </div>
+  );
+}
+
+/** Avatar plus the counterpart's presence dot for DMs. */
+function ChannelAvatar({ channel }: { channel: TeamChannelSummary }) {
+  const presence = usePresenceStore((s) =>
+    channel.counterpart ? s.entries[`${channel.counterpart.type}:${channel.counterpart.id}`] : undefined,
+  );
+  if (!channel.counterpart) return <Avatar name={channel.name} size="sm" />;
+  return (
+    <PresenceBadge state={presenceStateOf(presence)} size="sm">
+      <Avatar name={channel.name} size="sm" />
+    </PresenceBadge>
   );
 }
 
@@ -189,15 +204,30 @@ function MiniThread({
         return (
           <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] ${mine ? 'text-right' : 'text-left'}`}>
-              <div
-                className={`inline-block rounded-lg px-3 py-1.5 text-xs ${
-                  mine
-                    ? 'rounded-br-sm bg-pine-900 text-bone-50'
-                    : 'rounded-bl-sm border border-ink-200 bg-bone-100 text-ink-900'
-                }`}
-              >
-                {message.body}
-              </div>
+              {message.isDeleted ? (
+                <div className="inline-block rounded-lg border border-dashed border-ink-200 px-3 py-1.5 text-xs italic text-ink-400">
+                  This message was deleted
+                </div>
+              ) : (
+                <div
+                  className={`inline-block rounded-lg px-3 py-1.5 text-xs ${
+                    mine
+                      ? 'rounded-br-sm bg-pine-900 text-bone-50'
+                      : 'rounded-bl-sm border border-ink-200 bg-bone-100 text-ink-900'
+                  }`}
+                >
+                  {message.body}
+                  {!!message.attachments?.length && (
+                    <span
+                      className={`mt-1 flex items-center gap-1 text-[10px] ${mine ? 'text-bone-50/70' : 'text-ink-500'}`}
+                    >
+                      <Paperclip size={9} />
+                      {message.attachments.length}{' '}
+                      {message.attachments.length === 1 ? 'attachment' : 'attachments'} · open in the app
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="mt-0.5 text-[10px] text-ink-400">{format(new Date(message.createdAt), 'h:mm a')}</div>
             </div>
           </div>
