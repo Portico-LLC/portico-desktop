@@ -1143,7 +1143,10 @@ export interface DoodleRoundStartPayload {
   roomId: string;
   roundNumber: number;
   artistSeat: number;
-  wordLength: number;
+  /** Per-word length only (never the text, which would give the answer away). One group per
+   *  drawable word; null while the artist is still choosing a prompt and the round's drawing
+   *  clock hasn't started. */
+  wordLengths: number[] | null;
   durationMs: number;
   deadlineAt: number;
 }
@@ -1155,6 +1158,25 @@ export interface DoodleRoundStartArtistPayload {
   word: string;
   durationMs: number;
   deadlineAt: number;
+}
+
+/** The 1-of-3 prompts offered privately to the artist during the choice window. The `text`
+ *  field is only ever sent to the artist, who is the one choosing — nobody else receives it. */
+export interface DoodleWordChoicesPayload {
+  roomId: string;
+  roundNumber: number;
+  options: { text: string; parts: string[] }[];
+  /** Length of the choice window, so the artist's countdown ring can deplete over it. */
+  durationMs: number;
+  deadlineAt: number;
+}
+
+/** Room-wide once the artist locks in a prompt — carries only per-word lengths, never the
+ *  text (the artist gets the word privately via the round-start-artist event). */
+export interface DoodleWordLockedPayload {
+  roomId: string;
+  roundNumber: number;
+  wordLengths: number[];
 }
 
 export interface DoodleStrokePayload {

@@ -10,7 +10,8 @@ import type { GuessFeedEntry } from './useDoodleRelaySocket';
 
 interface GuessPanelProps {
   isArtist: boolean;
-  wordLength: number;
+  /** Per-word length only — null while the artist is still choosing a prompt. */
+  wordLengths: number[] | null;
   myWord: string | null;
   guessFeed: GuessFeedEntry[];
   seatName: (seat: number) => string;
@@ -19,7 +20,7 @@ interface GuessPanelProps {
   lastWasWrong: boolean;
 }
 
-export function GuessPanel({ isArtist, wordLength, myWord, guessFeed, seatName, onGuess, alreadyCorrect, lastWasWrong }: GuessPanelProps) {
+export function GuessPanel({ isArtist, wordLengths, myWord, guessFeed, seatName, onGuess, alreadyCorrect, lastWasWrong }: GuessPanelProps) {
   const reduce = !!useReducedMotion();
   const [value, setValue] = useState('');
   const feedRef = useRef<HTMLDivElement>(null);
@@ -45,7 +46,17 @@ export function GuessPanel({ isArtist, wordLength, myWord, guessFeed, seatName, 
         ) : (
           <>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">Guess the word</p>
-            <p className="font-mono text-lg tracking-[0.3em] text-ink-700">{'_ '.repeat(wordLength).trim()}</p>
+            {wordLengths ? (
+              // One underscore group per drawable word, with a visible gap between groups —
+              // e.g. "_ _ _ _ _   _ _ _ _ _ _" for a modifier + noun prompt.
+              <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 font-mono text-lg tracking-[0.3em] text-ink-700">
+                {wordLengths.map((len, i) => (
+                  <span key={i}>{'_ '.repeat(len).trim()}</span>
+                ))}
+              </p>
+            ) : (
+              <p className="text-base text-ink-500">The artist is choosing a word…</p>
+            )}
           </>
         )}
       </div>

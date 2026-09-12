@@ -29,15 +29,21 @@ function ChannelRow({
       onClick={onSelect}
       className={cn(
         'group relative w-full px-4 py-2 text-left transition-colors duration-hover ease-brand',
+        // Tracks the row's actual background per state via a local CSS variable, so the
+        // presence dot's ring (which reads this through `ringVar`) never shows a mismatched
+        // patch against whatever's actually behind it — resting, hovered, or active.
+        '[--badge-ring:var(--surface)]',
         // The brass keyline is the active marker — signal colour, used sparingly.
         'before:absolute before:left-0 before:top-1/2 before:h-6 before:w-0.5 before:-translate-y-1/2',
         'before:rounded-full before:bg-brass-500 before:transition-opacity before:duration-hover before:ease-brand',
-        active ? 'bg-bone-50 before:opacity-100' : 'before:opacity-0 hover:bg-ink-100/70 hover:before:opacity-40',
+        active
+          ? 'bg-bone-50 before:opacity-100 [--badge-ring:var(--bone-50)]'
+          : 'before:opacity-0 hover:bg-ink-100/70 hover:before:opacity-40 hover:[--badge-ring:var(--ink-100)]',
       )}
     >
       <div className="flex items-start gap-2.5">
         {channel.type === 'dm' ? (
-          <PresenceBadge state={presenceStateOf(presence)} size="sm">
+          <PresenceBadge state={presenceStateOf(presence)} size="sm" ringVar="--badge-ring">
             <Avatar name={channel.name} className="h-8 w-8" />
           </PresenceBadge>
         ) : (

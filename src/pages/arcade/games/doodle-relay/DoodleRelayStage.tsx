@@ -8,6 +8,7 @@ import { motionTransition, springs } from '@/lib/motion/springs';
 import { cn } from '@/lib/utils';
 import { DoodleCanvas, type DoodleCanvasHandle } from './DoodleCanvas';
 import { GuessPanel } from './GuessPanel';
+import { WordChoiceModal } from './WordChoiceModal';
 import { useDoodleRelaySocket } from './useDoodleRelaySocket';
 import type { GameRoomDetail, GameRoomMemberType, DoodleStrokePayload, DoodleMatchEndPayload, NormalizedPoint, DoodleTool } from '@/lib/types';
 
@@ -33,7 +34,7 @@ export function DoodleRelayStage({ room, onMatchEnd }: DoodleRelayStageProps) {
   const myMemberType: GameRoomMemberType = role === 'employee' ? 'employee' : 'owner';
   const mySeatIndex = room.members.find((m) => m.memberType === myMemberType && m.memberId === authUser?.id)?.seatIndex ?? null;
 
-  const { roundStart, myWord, reveal, guessFeed, myLastResult, sendStroke, sendClear, sendGuess } = useDoodleRelaySocket({
+  const { roundStart, pendingChoice, myWord, reveal, guessFeed, myLastResult, sendStroke, sendClear, sendGuess, chooseWord } = useDoodleRelaySocket({
     roomId: room.id,
     mySeatIndex,
     onStroke: (payload: DoodleStrokePayload) => {
@@ -53,6 +54,9 @@ export function DoodleRelayStage({ room, onMatchEnd }: DoodleRelayStageProps) {
   }, [reveal]);
 
   const isArtist = roundStart !== null && roundStart.artistSeat === mySeatIndex;
+  // True while the artist is still picking a word — the word-choice modal sits over the board
+  // and holds drawing until a prompt is locked in (the server auto-picks on timeout anyway).
+  const choosing = isArtist && pendingChoice !== null;
   const alreadyCorrect = myLastResult?.correct === true;
 
   const seatEntries = [...room.members].filter((m) => m.seatIndex !== null).sort((a, b) => (a.seatIndex ?? 0) - (b.seatIndex ?? 0));
@@ -126,12 +130,21 @@ export function DoodleRelayStage({ room, onMatchEnd }: DoodleRelayStageProps) {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {choosing && pendingChoice && (
+            <WordChoiceModal
+              options={pendingChoice.options}
+              deadlineAt={pendingChoice.deadlineAt}
+              choiceTimeoutMs={pendingChoice.durationMs}
+              onChoose={chooseWord}
+            />
+          )}
         </div>
 
         <div className="w-full lg:w-72">
           <GuessPanel
             isArtist={isArtist}
-            wordLength={roundStart?.wordLength ?? 0}
+            wordLengths={roundStart?.wordLengths ?? null}
             myWord={myWord}
             guessFeed={guessFeed}
             seatName={seatName}

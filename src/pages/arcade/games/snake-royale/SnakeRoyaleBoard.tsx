@@ -57,6 +57,12 @@ interface Particle {
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** The direction a snake is facing, given its head and its neck. */
+const headNeckDirection = (head: GridPoint, neck: GridPoint): Direction => {
+  if (head.x !== neck.x) return head.x > neck.x ? 'right' : 'left';
+  return head.y > neck.y ? 'down' : 'up';
+};
+
 // How fast a reconciliation error (predicted head vs. server-confirmed head) is eased out
 // once it's known, instead of snapped. Half a tick at the default 90ms rate, so a correction
 // is essentially invisible within ~2 ticks. See the tick-change block in `draw()`.
@@ -208,9 +214,17 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
     predictedHeadRef.current = null;
     predictedProgressRef.current = 0;
     headErrorRef.current = { x: 0, y: 0 };
+    // Seed the predicted-steering direction from this round's confirmed starting body. It was
+    // left holding the *previous* round's last direction, which made the head briefly
+    // extrapolate the wrong way at every single round boundary until the first tick corrected
+    // it — a glitch that's invisible once this is sourced from the authoritative snapshot.
+    const myStartSnake = roundStart.snakes?.find((s) => s.seat === mySeatIndex);
+    if (myStartSnake && myStartSnake.segments.length >= 2) {
+      myDirectionRef.current = headNeckDirection(myStartSnake.segments[0], myStartSnake.segments[1]);
+    }
     const t = setTimeout(() => setRoundBanner(null), 1400);
     return () => clearTimeout(t);
-  }, [roundStart]);
+  }, [roundStart, mySeatIndex]);
 
   // ---- Responsive square canvas ----
   useEffect(() => {
@@ -229,10 +243,7 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
     const current = bufferRef.current.current;
     const mine = current?.snakes.find((s) => s.seat === mySeatIndex);
     if (!mine || mine.segments.length < 2) return myDirectionRef.current;
-    const head = mine.segments[0];
-    const neck = mine.segments[1];
-    if (head.x !== neck.x) return head.x > neck.x ? 'right' : 'left';
-    return head.y > neck.y ? 'down' : 'up';
+    return headNeckDirection(mine.segments[0], mine.segments[1]);
   };
 
   const requestDirection = (dir: Direction) => {
@@ -433,11 +444,21 @@ export function SnakeRoyaleBoard({ room, onMatchEnd }: SnakeRoyaleBoardProps) {
           const a = prevSnake?.segments[i] ?? seg;
           return { x: lerp(a.x, seg.x, tBody), y: lerp(a.y, seg.y, tBody) };
         });
-        if (isMine && predictedHeadRef.current && segs.length) {
-          segs[0] = {
-            x: predictedHeadRef.current.x + headErrorRef.current.x,
-            y: predictedHeadRef.current.y + headErrorRef.current.y,
-          };
+        if (isMine && predictedHeadRef.current && snake.segments.length) {
+          // Predict the WHOLE local snake, not just the head. Only segs[0] used to be drawn
+          // from the predicted position while the rest of the body still tick-interpolated,
+          // so on a turn the predicted head led the lagging, interpolated neck and drew a
+          // visible seam at every turn — the exact "my snake stutters but the bots glide"
+          // complaint (bots draw from confirmed data only, so they were internally consistent
+          // by construction). Shifting every segment by the head's lead over its confirmed
+          // position anchors the neck to the same continuous clock as the head: the body now
+          // travels forward together instead of the head outrunning its own tail.
+          const base = snake.segments;
+          const ox = predictedHeadRef.current.x + headErrorRef.current.x - base[0].x;
+          const oy = predictedHeadRef.current.y + headErrorRef.current.y - base[0].y;
+          for (let i = 0; i < base.length; i++) {
+            segs[i] = { x: base[i].x + ox, y: base[i].y + oy };
+          }
         }
         drawSnake(ctx, segs, cellSize, color, snake.alive, isMine);
       }

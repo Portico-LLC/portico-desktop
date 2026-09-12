@@ -10,6 +10,8 @@ import type {
   DoodleGuessCorrectPayload,
   DoodleRoundRevealPayload,
   DoodleMatchEndPayload,
+  DoodleWordChoicesPayload,
+  DoodleWordLockedPayload,
   DoodleTool,
 } from '@/lib/types';
 
@@ -36,6 +38,7 @@ interface UseDoodleRelaySocketOptions {
 
 export function useDoodleRelaySocket({ roomId, mySeatIndex, onStroke, onClear, onMatchEnd }: UseDoodleRelaySocketOptions) {
   const [roundStart, setRoundStart] = useState<DoodleRoundStartPayload | null>(null);
+  const [pendingChoice, setPendingChoice] = useState<DoodleWordChoicesPayload | null>(null);
   const [myWord, setMyWord] = useState<string | null>(null);
   const [reveal, setReveal] = useState<DoodleRoundRevealPayload | null>(null);
   const [guessFeed, setGuessFeed] = useState<GuessFeedEntry[]>([]);
@@ -61,6 +64,8 @@ export function useDoodleRelaySocket({ roomId, mySeatIndex, onStroke, onClear, o
     const handleRoundStart = (payload: DoodleRoundStartPayload) => {
       if (payload.roomId !== roomId) return;
       setRoundStart(payload);
+      // A fresh round begins — clear any leftover choice window from a previous round.
+      setPendingChoice(null);
       // Only clear when I'm not this round's artist — if I am, `doodle:round:start:artist`
       // already delivered my word a moment earlier and it must survive this broadcast.
       if (payload.artistSeat !== mySeatIndexRef.current) setMyWord(null);
@@ -68,6 +73,17 @@ export function useDoodleRelaySocket({ roomId, mySeatIndex, onStroke, onClear, o
       setGuessFeed([]);
       setMyLastResult(null);
       onClearRef.current();
+    };
+    const handleWordChoices = (payload: DoodleWordChoicesPayload) => {
+      if (payload.roomId !== roomId) return;
+      setPendingChoice(payload);
+    };
+    const handleWordLocked = (payload: DoodleWordLockedPayload) => {
+      if (payload.roomId !== roomId) return;
+      setPendingChoice(null);
+      // The artist just locked in their pick — surface the real per-word lengths so the
+      // guess panel stops showing the "choosing…" placeholder and starts showing blanks.
+      setRoundStart((rs) => (rs && rs.roomId === roomId ? { ...rs, wordLengths: payload.wordLengths } : rs));
     };
     const handleRoundStartArtist = (payload: DoodleRoundStartArtistPayload) => {
       if (payload.roomId !== roomId) return;
@@ -103,6 +119,8 @@ export function useDoodleRelaySocket({ roomId, mySeatIndex, onStroke, onClear, o
     };
 
     socket.on('doodle:round:start', handleRoundStart);
+    socket.on('doodle:word:choices', handleWordChoices);
+    socket.on('doodle:round:word:locked', handleWordLocked);
     socket.on('doodle:round:start:artist', handleRoundStartArtist);
     socket.on('doodle:stroke', handleStroke);
     socket.on('doodle:clear', handleClear);
@@ -120,6 +138,8 @@ export function useDoodleRelaySocket({ roomId, mySeatIndex, onStroke, onClear, o
     socket.emit('game:resume', { roomId });
     return () => {
       socket.off('doodle:round:start', handleRoundStart);
+      socket.off('doodle:word:choices', handleWordChoices);
+      socket.off('doodle:round:word:locked', handleWordLocked);
       socket.off('doodle:round:start:artist', handleRoundStartArtist);
       socket.off('doodle:stroke', handleStroke);
       socket.off('doodle:clear', handleClear);
@@ -146,6 +166,12 @@ export function useDoodleRelaySocket({ roomId, mySeatIndex, onStroke, onClear, o
     },
     [roomId],
   );
+  const chooseWord = useCallback(
+    (index: number) => {
+      getArcadeSocket()?.emit('doodle:word:choose', { roomId, index });
+    },
+    [roomId],
+  );
 
-  return { roundStart, myWord, reveal, guessFeed, myLastResult, sendStroke, sendClear, sendGuess };
+  return { roundStart, pendingChoice, myWord, reveal, guessFeed, myLastResult, sendStroke, sendClear, sendGuess, chooseWord };
 }
