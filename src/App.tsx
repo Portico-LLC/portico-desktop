@@ -23,6 +23,7 @@ import { Pulse } from '@/pages/Pulse';
 import { Radar } from '@/pages/Radar';
 import { Inbox } from '@/pages/Inbox';
 import { Clients } from '@/pages/Clients';
+import { Leads } from '@/pages/Leads';
 import { Projects } from '@/pages/Projects';
 import { Tasks } from '@/pages/Tasks';
 import { Invoices } from '@/pages/Invoices';
@@ -232,6 +233,7 @@ export default function App() {
                   <Route path="/steward" element={<Steward />} />
                 </Route>
                 <Route path="/clients" element={<Clients />} />
+                <Route path="/leads" element={<Leads />} />
                 <Route element={<ModuleGuard module="invoices" />}>
                   <Route path="/invoices" element={<Invoices />} />
                 </Route>

@@ -29,6 +29,7 @@ import {
   Gamepad2,
   Gauge,
   Sparkles,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motionTransition, springs } from '@/lib/motion/springs';
@@ -37,6 +38,7 @@ import { useAuthStore } from '@/store/auth';
 import { useCommandPaletteStore } from '@/store/commandPalette';
 import { BrandMark } from '@/components/brand/BrandMark';
 import { anchorForHref } from '@/lib/onboarding/anchors';
+import { isElectron } from '@/lib/isElectron';
 import type { CompanyModule } from '@/lib/types';
 
 interface NavItem {
@@ -47,6 +49,10 @@ interface NavItem {
    *  Set for a real toggleable product module — a Super Admin can disable
    *  these per company, and this item then drops out of the nav. */
   module?: CompanyModule;
+  /** Only ever shown inside the Electron desktop build — the item depends on a
+   *  capability (e.g. a locally-run process) that doesn't exist on the web app.
+   *  Unrelated to the per-company `module` toggle above. */
+  desktopOnly?: boolean;
 }
 
 interface NavSection {
@@ -78,6 +84,7 @@ const ownerNavSections: NavSection[] = [
     label: 'Clients',
     items: [
       { label: 'Clients', icon: <Users size={18} />, href: '/clients' },
+      { label: 'Leads', icon: <MapPin size={18} />, href: '/leads', desktopOnly: true },
       { label: 'Invoices', icon: <FileText size={18} />, href: '/invoices', module: 'invoices' },
     ],
   },
@@ -148,7 +155,7 @@ export function Sidebar() {
   // session is gated for now; an employee's nav shows every module until
   // that's plumbed through too.
   const baseSections = role === 'employee' ? employeeNavSections : ownerNavSections;
-  const sections =
+  const moduleFiltered =
     role === 'user' && enabledModules
       ? baseSections
           .map((section) => ({
@@ -157,6 +164,15 @@ export function Sidebar() {
           }))
           .filter((section) => section.items.length > 0)
       : baseSections;
+  // Applied unconditionally, independent of the module filter above — a
+  // desktopOnly item must never leak onto the web app, including while
+  // enabledModules hasn't loaded yet (the branch above then skips filtering).
+  const sections = moduleFiltered
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.desktopOnly || isElectron),
+    }))
+    .filter((section) => section.items.length > 0);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const isItemActive = (item: NavItem) =>

@@ -42,6 +42,53 @@ export interface DesktopCaptureSource {
 export type MediaAccessKind = 'microphone' | 'camera';
 export type MediaAccessStatus = 'not-determined' | 'granted' | 'denied' | 'restricted' | 'unknown';
 
+/** Whether the bundled google-maps-scraper binary can run on this machine. */
+export interface LeadsScraperAvailability {
+  available: boolean;
+  reason: 'unsupported-platform' | 'binary-missing' | null;
+}
+
+export interface LeadsScraperReadyResult {
+  ok: boolean;
+  baseUrl?: string;
+  reason?: 'unsupported-platform' | 'binary-missing' | 'install-failed' | 'start-timeout';
+  message?: string;
+}
+
+export interface LeadsInstallProgress {
+  phase: 'installing' | 'starting' | 'ready';
+  chunk?: string;
+}
+
+/** Mirrors gosom/google-maps-scraper's `JobData` request/response shape (its
+ *  `-web` REST API — see web/job.go upstream). */
+export interface LeadsJobData {
+  keywords: string[];
+  lang: string;
+  zoom: number;
+  lat: string;
+  lon: string;
+  fast_mode: boolean;
+  radius: number;
+  depth: number;
+  email: boolean;
+  extra_reviews: boolean;
+  max_time: number; // seconds, scraper recommends >= 180
+  proxies: string[];
+}
+
+export interface LeadsJob {
+  ID: string;
+  Name: string;
+  Date: string;
+  Status: 'pending' | 'working' | 'ok' | 'failed';
+  Data: LeadsJobData;
+}
+
+/** One row parsed from the scraper's downloaded CSV — column names are the raw
+ *  CSV headers (see the scraper's "Extracted Data Points" docs upstream). */
+export type LeadsScrapedRow = Record<string, string>;
+
 export interface PorticoBridge {
   platform: 'darwin' | 'win32' | 'linux' | string;
   window: {
@@ -91,6 +138,16 @@ export interface PorticoBridge {
     requestMediaAccess: (kind: MediaAccessKind) => Promise<boolean>;
     getMediaAccessStatus: (kind: MediaAccessKind) => Promise<MediaAccessStatus>;
     setContentProtection: (enabled: boolean) => void;
+  };
+  leads: {
+    getStatus: () => Promise<LeadsScraperAvailability>;
+    ensureReady: () => Promise<LeadsScraperReadyResult>;
+    createJob: (jobData: LeadsJobData) => Promise<{ id: string }>;
+    listJobs: () => Promise<LeadsJob[]>;
+    getJob: (id: string) => Promise<LeadsJob>;
+    deleteJob: (id: string) => Promise<boolean>;
+    downloadJob: (id: string) => Promise<LeadsScrapedRow[]>;
+    onInstallProgress: (cb: (progress: LeadsInstallProgress) => void) => () => void;
   };
 }
 

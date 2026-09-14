@@ -19,6 +19,7 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { MeetingDetector } = require('./meeting-detector.cjs');
+const leadsScraper = require('./leads-scraper.cjs');
 
 const isDev = !app.isPackaged;
 
@@ -634,6 +635,16 @@ function registerIpcHandlers() {
     tryRegisterShortcut(previous);
     return { ok: false, error: 'That shortcut is already in use.', shortcut: previous };
   });
+
+  ipcMain.handle('leads:status', () => leadsScraper.isAvailable());
+  ipcMain.handle('leads:ensure-ready', () =>
+    leadsScraper.ensureReady((progress) => mainWindow?.webContents.send('leads:install-progress', progress)),
+  );
+  ipcMain.handle('leads:create-job', (_e, jobData) => leadsScraper.createJob(jobData));
+  ipcMain.handle('leads:list-jobs', () => leadsScraper.listJobs());
+  ipcMain.handle('leads:get-job', (_e, id) => leadsScraper.getJob(id));
+  ipcMain.handle('leads:delete-job', (_e, id) => leadsScraper.deleteJob(id));
+  ipcMain.handle('leads:download-job', (_e, id) => leadsScraper.downloadAndParseJob(id));
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
@@ -688,4 +699,5 @@ app.on('before-quit', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  leadsScraper.killServer();
 });

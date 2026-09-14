@@ -9,6 +9,10 @@ dist-ssr
 # electron-builder packaging output
 release/
 
+# Fetched by scripts/fetch-scraper-binary.mjs at build time — never committed
+# (~60MB, versioned externally on GitHub Releases).
+resources/
+
 # Logs
 logs
 *.log

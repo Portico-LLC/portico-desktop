@@ -64,4 +64,18 @@ contextBridge.exposeInMainWorld('portico', {
     getMediaAccessStatus: (kind) => ipcRenderer.invoke('recorder:get-media-access-status', kind),
     setContentProtection: (enabled) => ipcRenderer.send('recorder:set-content-protection', enabled),
   },
+  leads: {
+    getStatus: () => ipcRenderer.invoke('leads:status'),
+    ensureReady: () => ipcRenderer.invoke('leads:ensure-ready'),
+    createJob: (jobData) => ipcRenderer.invoke('leads:create-job', jobData),
+    listJobs: () => ipcRenderer.invoke('leads:list-jobs'),
+    getJob: (id) => ipcRenderer.invoke('leads:get-job', id),
+    deleteJob: (id) => ipcRenderer.invoke('leads:delete-job', id),
+    downloadJob: (id) => ipcRenderer.invoke('leads:download-job', id),
+    onInstallProgress: (cb) => {
+      const handler = (_e, progress) => cb(progress);
+      ipcRenderer.on('leads:install-progress', handler);
+      return () => ipcRenderer.off('leads:install-progress', handler);
+    },
+  },
 });

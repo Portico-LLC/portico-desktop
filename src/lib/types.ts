@@ -225,6 +225,28 @@ export interface Client {
   projects?: Project[];
 }
 
+/** A prospective business found via the desktop Leads scraper, or added by hand.
+ *  Separate from Client — a lead has no portal login and isn't a real client yet. */
+export interface Lead {
+  id: string;
+  name: string;
+  category?: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  email?: string;
+  rating?: number;
+  reviewCount?: number;
+  sourceUrl?: string;
+  placeId?: string;
+  cid?: string;
+  source?: string;
+  status?: string;
+  notes?: string;
+  convertedClientId?: string;
+  createdAt: string;
+}
+
 export interface Project {
   id: string;
   name: string;
