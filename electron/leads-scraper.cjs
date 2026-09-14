@@ -151,6 +151,29 @@ async function ensureReady(onProgress) {
   return { ok: true, baseUrl: BASE_URL };
 }
 
+// Nominatim's usage policy (https://operations.osmfoundation.org/policies/nominatim/)
+// caps unauthenticated use at 1 request/second and requires a valid identifying
+// User-Agent on every request. Browsers refuse to let page script set the
+// User-Agent header, so geocoding runs here in the main process (Node's fetch
+// has no such restriction) rather than in the renderer.
+const GEOCODE_MIN_INTERVAL_MS = 1100;
+let lastGeocodeAt = 0;
+
+async function geocode(query) {
+  const wait = lastGeocodeAt + GEOCODE_MIN_INTERVAL_MS - Date.now();
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  lastGeocodeAt = Date.now();
+
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Portico-Desktop-Leads/1.0 (+https://www.portico.company)' },
+  });
+  if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
+  const results = await res.json();
+  const first = results?.[0];
+  return first ? { lat: first.lat, lon: first.lon } : null;
+}
+
 async function createJob(jobData) {
   const res = await fetch(`${BASE_URL}/api/v1/jobs`, {
     method: 'POST',
@@ -279,6 +302,7 @@ function killServer() {
 module.exports = {
   isAvailable,
   ensureReady,
+  geocode,
   createJob,
   listJobs,
   getJob,

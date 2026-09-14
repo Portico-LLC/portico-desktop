@@ -71,6 +71,19 @@ function rowToImportPayload(row: LeadsScrapedRow) {
   }) as Record<string, unknown>;
 }
 
+/** Best-effort split of a search line into its location, e.g. "coffee shops in
+ *  Tunisia" -> "Tunisia" or "coffee shops, Austin, TX" -> "Austin, TX". The
+ *  form has no separate location field — keywords and place are one free-text
+ *  line — so this is what gets geocoded before creating a job. Falls back to
+ *  the whole line when neither pattern is found. */
+function extractLocationText(query: string): string {
+  const afterIn = query.match(/\bin\s+(.+)$/i);
+  if (afterIn) return afterIn[1].trim();
+  const lastComma = query.lastIndexOf(',');
+  if (lastComma !== -1) return query.slice(lastComma + 1).trim();
+  return query.trim();
+}
+
 function readyReasonMessage(reason?: string, message?: string): string {
   switch (reason) {
     case 'unsupported-platform':
@@ -202,25 +215,54 @@ function LeadsPage() {
       const result = await leadsBridge.ensureReady();
       if (!result.ok) throw new Error(readyReasonMessage(result.reason, result.message));
       setReadyState('ready');
-      const keywords = data.keywords
+      const lines = data.keywords
         .split('\n')
         .map((k) => k.trim())
         .filter(Boolean);
-      return leadsBridge.createJob({
-        name: keywords.join(', '),
-        keywords,
-        lang: data.lang,
-        zoom: 15,
-        lat: '0',
-        lon: '0',
-        fast_mode: false,
-        radius: 10000,
-        depth: data.depth,
-        email: data.email,
-        extra_reviews: false,
-        max_time: data.maxTimeMinutes * 60,
-        proxies: [],
-      });
+
+      // The bundled scraper's normal (Playwright/headless-browser) mode has a
+      // reproducible upstream bug — every search fails with "unexpected page
+      // type" regardless of query or coordinates. Its fast mode (a plain HTTP
+      // fetch, no browser) works, but it flatly requires real coordinates —
+      // "0,0" or an empty geo returns zero results just like normal mode did.
+      // The form has no separate location field, so each line's place name is
+      // pulled out with extractLocationText() and geocoded individually — one
+      // scraper job per line, since a job only accepts one lat/lon for all its
+      // keywords. depth is still sent for LeadsJobData's sake, but fast mode
+      // has no pagination/scroll-depth concept, so it has no effect there.
+      const unresolved: string[] = [];
+      let created = 0;
+
+      for (const line of lines) {
+        const geo = await leadsBridge.geocode(extractLocationText(line)).catch(() => null);
+        if (!geo) {
+          unresolved.push(line);
+          continue;
+        }
+        await leadsBridge.createJob({
+          name: line,
+          keywords: [line],
+          lang: data.lang,
+          zoom: 13,
+          lat: geo.lat,
+          lon: geo.lon,
+          fast_mode: true,
+          radius: 10000,
+          depth: data.depth,
+          email: data.email,
+          extra_reviews: false,
+          max_time: data.maxTimeMinutes * 60,
+          proxies: [],
+        });
+        created += 1;
+      }
+
+      if (created === 0) {
+        throw new Error(`Couldn't find a location for: ${unresolved.join(', ')}`);
+      }
+      if (unresolved.length > 0) {
+        setReadyError(`Started, but couldn't find a location for: ${unresolved.join(', ')}`);
+      }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads-scrape-jobs'] }),
     onError: (err) => setReadyError(getErrorMessage(err)),

@@ -67,6 +67,7 @@ contextBridge.exposeInMainWorld('portico', {
   leads: {
     getStatus: () => ipcRenderer.invoke('leads:status'),
     ensureReady: () => ipcRenderer.invoke('leads:ensure-ready'),
+    geocode: (query) => ipcRenderer.invoke('leads:geocode', query),
     createJob: (jobData) => ipcRenderer.invoke('leads:create-job', jobData),
     listJobs: () => ipcRenderer.invoke('leads:list-jobs'),
     getJob: (id) => ipcRenderer.invoke('leads:get-job', id),
