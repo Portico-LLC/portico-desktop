@@ -22,8 +22,8 @@ import { MapPin, Search, UserPlus } from 'lucide-react';
 const searchSchema = z.object({
   keywords: z.string().min(1, 'Enter at least one search line'),
   lang: z.string().min(2).max(2),
-  depth: z.coerce.number().int().min(1).max(20),
-  maxTimeMinutes: z.coerce.number().int().min(3).max(30),
+  depth: z.number().int().min(1).max(20),
+  maxTimeMinutes: z.number().int().min(3).max(30),
   email: z.boolean(),
 });
 type SearchForm = z.infer<typeof searchSchema>;
@@ -222,7 +222,7 @@ function LeadsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="depth">Results per search</Label>
-                  <Select id="depth" {...register('depth')}>
+                  <Select id="depth" {...register('depth', { valueAsNumber: true })}>
                     <option value="1">Quick (~1 page)</option>
                     <option value="5">Standard</option>
                     <option value="10">Thorough</option>
@@ -230,7 +230,7 @@ function LeadsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="maxTimeMinutes">Max run time</Label>
-                  <Select id="maxTimeMinutes" {...register('maxTimeMinutes')}>
+                  <Select id="maxTimeMinutes" {...register('maxTimeMinutes', { valueAsNumber: true })}>
                     <option value="3">3 minutes</option>
                     <option value="5">5 minutes</option>
                     <option value="10">10 minutes</option>

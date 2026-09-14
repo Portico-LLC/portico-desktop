@@ -89,7 +89,7 @@ function dataFolder() {
 function spawnServer() {
   if (child) return;
   fs.mkdirSync(dataFolder(), { recursive: true });
-  child = spawn(resolveBinaryPath(), ['-web', '-addr', `:${PORT}`, '-data-folder', dataFolder()], {
+  child = spawn(resolveBinaryPath(), ['-web', '-addr', `127.0.0.1:${PORT}`, '-data-folder', dataFolder()], {
     windowsHide: true,
     env: { ...process.env, DISABLE_TELEMETRY: '1' },
   });
