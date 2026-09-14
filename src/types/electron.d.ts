@@ -85,6 +85,14 @@ export interface LeadsJob {
   Data: LeadsJobData;
 }
 
+/** POST /api/v1/jobs body — Go's `apiScrapeRequest{ Name string; JobData }` is
+ *  an embedded struct, so `name` is flattened alongside the JobData fields at
+ *  the top level of the JSON body, not nested. `name` is required — the scraper
+ *  rejects a request with no name as 422 "missing name". */
+export interface LeadsCreateJobPayload extends LeadsJobData {
+  name: string;
+}
+
 /** One row parsed from the scraper's downloaded CSV — column names are the raw
  *  CSV headers (see the scraper's "Extracted Data Points" docs upstream). */
 export type LeadsScrapedRow = Record<string, string>;
@@ -142,7 +150,7 @@ export interface PorticoBridge {
   leads: {
     getStatus: () => Promise<LeadsScraperAvailability>;
     ensureReady: () => Promise<LeadsScraperReadyResult>;
-    createJob: (jobData: LeadsJobData) => Promise<{ id: string }>;
+    createJob: (jobData: LeadsCreateJobPayload) => Promise<{ id: string }>;
     listJobs: () => Promise<LeadsJob[]>;
     getJob: (id: string) => Promise<LeadsJob>;
     deleteJob: (id: string) => Promise<boolean>;

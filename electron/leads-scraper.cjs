@@ -164,7 +164,10 @@ async function createJob(jobData) {
 async function listJobs() {
   const res = await fetch(`${BASE_URL}/api/v1/jobs`);
   if (!res.ok) throw new Error(`Failed to list jobs: ${res.status}`);
-  return res.json();
+  // The scraper's API returns a bare JSON `null` (an unintialized Go slice),
+  // not `[]`, when there are zero jobs yet — never hand that to the renderer.
+  const data = await res.json();
+  return data ?? [];
 }
 
 async function getJob(id) {

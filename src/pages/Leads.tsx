@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { Component, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
@@ -37,18 +38,30 @@ const JOB_STATUS_META: Record<LeadsJob['Status'], { label: string; variant: 'neu
 
 const ACTIVE_JOB_STATUSES: LeadsJob['Status'][] = ['pending', 'working'];
 
+type ImportStatus =
+  | { state: 'importing' }
+  | { state: 'imported'; count: number }
+  | { state: 'no-results' }
+  | { state: 'failed'; error: string };
+
 /** Maps a row of the scraper's CSV (raw column names — see upstream
  *  gosom/google-maps-scraper's "Extracted Data Points" docs) onto Portico's own
  *  `/leads/import` shape. */
 function rowToImportPayload(row: LeadsScrapedRow) {
   const num = (v?: string) => (v && v.trim() !== '' ? Number(v) : undefined);
+  // The scraper's `emails` column is a comma-joined list when a business has
+  // more than one address on file (Go's `strings.Join(emails, ", ")`) — only
+  // the first is usable as a single Lead.email value.
+  const firstEmail = row.emails?.split(',')[0]?.trim();
   return cleanPayload({
     name: row.title || row.name,
     category: row.category,
-    address: row.complete_address || row.address,
+    // `complete_address` is a JSON-serialized struct on the scraper's side, not
+    // a display string — `address` is the plain human-readable one.
+    address: row.address || row.complete_address,
     phone: row.phone,
     website: row.website,
-    email: row.emails,
+    email: firstEmail,
     rating: num(row.review_rating),
     reviewCount: num(row.review_count),
     sourceUrl: row.link,
@@ -73,9 +86,51 @@ function readyReasonMessage(reason?: string, message?: string): string {
   }
 }
 
+interface LeadsErrorBoundaryState {
+  error: Error | null;
+}
+
+/** Catches a render-time throw anywhere in the Leads page — a bad response
+ *  shape from the local scraper's API being the most likely cause — and shows
+ *  a recoverable message instead of silently blanking the whole app. */
+class LeadsErrorBoundary extends Component<{ children: ReactNode }, LeadsErrorBoundaryState> {
+  state: LeadsErrorBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error('Leads page crashed:', error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="p-8">
+          <Card className="border-terracotta-300 bg-terracotta-50">
+            <CardContent className="py-6">
+              <p className="text-sm font-medium text-terracotta-700">Something went wrong on the Leads page.</p>
+              <p className="mt-1 text-xs text-terracotta-600">{this.state.error.message}</p>
+              <Button className="mt-4" variant="secondary" size="sm" onClick={() => this.setState({ error: null })}>
+                Try again
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function Leads() {
   if (!isElectron) return <Navigate to="/" replace />;
-  return <LeadsPage />;
+  return (
+    <LeadsErrorBoundary>
+      <LeadsPage />
+    </LeadsErrorBoundary>
+  );
 }
 
 function LeadsPage() {
@@ -92,36 +147,51 @@ function LeadsPage() {
 
   useEffect(() => leadsBridge.onInstallProgress((progress) => setReadyState(progress.phase)), [leadsBridge]);
 
-  const { data: jobs = [] } = useQuery({
+  const { data: jobsData } = useQuery({
     queryKey: ['leads-scrape-jobs'],
-    queryFn: () => leadsBridge.listJobs(),
+    // Belt-and-suspenders: leadsBridge.listJobs() already normalizes a bare
+    // `null` response (the scraper's API returns that instead of `[]` when no
+    // jobs exist yet) to `[]`, but never trust an external process's response
+    // shape twice removed from where it was fetched.
+    queryFn: () => leadsBridge.listJobs().then((data) => data ?? []),
     enabled: readyState === 'ready',
     refetchInterval: (query) => (query.state.data?.some((j) => ACTIVE_JOB_STATUSES.includes(j.Status)) ? 2000 : false),
   });
+  const jobs = jobsData ?? [];
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['leads'],
     queryFn: () => api.get<Lead[]>('/leads').then((r) => r.data),
   });
 
-  const importMutation = useMutation({
-    mutationFn: (rows: LeadsScrapedRow[]) =>
-      api.post('/leads/import', { leads: rows.map(rowToImportPayload) }).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
-  });
+  const [importStatus, setImportStatus] = useState<Record<string, ImportStatus>>({});
 
   // Import results from any job that just finished — each job id is only handled once per session.
+  // Tracked per-job (not a shared mutation) so a failure on one search is visible
+  // right next to it instead of silently doing nothing.
   useEffect(() => {
     for (const job of jobs) {
-      if (job.Status === 'ok' && !handledJobIds.current.has(job.ID)) {
-        handledJobIds.current.add(job.ID);
-        leadsBridge
-          .downloadJob(job.ID)
-          .then((rows) => {
-            if (rows.length > 0) importMutation.mutate(rows);
-          })
-          .catch((err) => console.error('Failed to download scrape results', err));
-      }
+      if (job.Status !== 'ok' || handledJobIds.current.has(job.ID)) continue;
+      handledJobIds.current.add(job.ID);
+      setImportStatus((s) => ({ ...s, [job.ID]: { state: 'importing' } }));
+
+      leadsBridge
+        .downloadJob(job.ID)
+        .then(async (rows) => {
+          if (rows.length === 0) {
+            setImportStatus((s) => ({ ...s, [job.ID]: { state: 'no-results' } }));
+            return;
+          }
+          const res = await api.post<{ imported: number; skipped: number }>('/leads/import', {
+            leads: rows.map(rowToImportPayload),
+          });
+          queryClient.invalidateQueries({ queryKey: ['leads'] });
+          setImportStatus((s) => ({ ...s, [job.ID]: { state: 'imported', count: res.data.imported } }));
+        })
+        .catch((err) => {
+          console.error('Failed to add scraped leads', err);
+          setImportStatus((s) => ({ ...s, [job.ID]: { state: 'failed', error: getErrorMessage(err) } }));
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobs]);
@@ -137,6 +207,7 @@ function LeadsPage() {
         .map((k) => k.trim())
         .filter(Boolean);
       return leadsBridge.createJob({
+        name: keywords.join(', '),
         keywords,
         lang: data.lang,
         zoom: 15,
@@ -270,11 +341,20 @@ function LeadsPage() {
             <div className="divide-y divide-ink-200">
               {jobs.map((job) => {
                 const meta = JOB_STATUS_META[job.Status];
+                const imp = importStatus[job.ID];
                 return (
                   <div key={job.ID} className="flex items-center justify-between p-4">
                     <div>
                       <p className="text-sm font-medium text-ink-900">{job.Data.keywords.join(', ')}</p>
                       <p className="text-xs text-ink-400">{new Date(job.Date).toLocaleString()}</p>
+                      {imp?.state === 'importing' && <p className="text-xs text-ink-400">Adding leads…</p>}
+                      {imp?.state === 'imported' && (
+                        <p className="text-xs text-moss-600">
+                          {imp.count} lead{imp.count === 1 ? '' : 's'} added
+                        </p>
+                      )}
+                      {imp?.state === 'no-results' && <p className="text-xs text-ink-400">No results found for this search.</p>}
+                      {imp?.state === 'failed' && <p className="text-xs text-terracotta-600">Couldn't add leads: {imp.error}</p>}
                     </div>
                     <Badge variant={meta.variant}>{meta.label}</Badge>
                   </div>
