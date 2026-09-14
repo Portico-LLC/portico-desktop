@@ -7,8 +7,11 @@ const fs = require('fs');
  * Manages a local, bundled copy of gosom/google-maps-scraper (MIT-licensed,
  * github.com/gosom/google-maps-scraper) running in `-web` mode, so the Leads
  * feature can pull business leads straight out of Google Maps with no paid API
- * and no cloud dependency — it drives a real headless Chromium browser against
- * the Maps UI, never the paid Places API.
+ * and no cloud dependency, never the paid Places API. Jobs run in the
+ * scraper's `fast_mode` (a plain HTTP fetch against Google's own internal Maps
+ * endpoint) — its other, browser-driven mode has a reproducible upstream bug
+ * (every job fails with "unexpected page type", confirmed across releases,
+ * independent of this app) and is not used.
  *
  * Windows only for now: upstream ships no arm64 macOS binary, and the binary is
  * only bundled into the Windows build (see portico-desktop/package.json's
@@ -151,29 +154,6 @@ async function ensureReady(onProgress) {
   return { ok: true, baseUrl: BASE_URL };
 }
 
-// Nominatim's usage policy (https://operations.osmfoundation.org/policies/nominatim/)
-// caps unauthenticated use at 1 request/second and requires a valid identifying
-// User-Agent on every request. Browsers refuse to let page script set the
-// User-Agent header, so geocoding runs here in the main process (Node's fetch
-// has no such restriction) rather than in the renderer.
-const GEOCODE_MIN_INTERVAL_MS = 1100;
-let lastGeocodeAt = 0;
-
-async function geocode(query) {
-  const wait = lastGeocodeAt + GEOCODE_MIN_INTERVAL_MS - Date.now();
-  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-  lastGeocodeAt = Date.now();
-
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Portico-Desktop-Leads/1.0 (+https://www.portico.company)' },
-  });
-  if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
-  const results = await res.json();
-  const first = results?.[0];
-  return first ? { lat: first.lat, lon: first.lon } : null;
-}
-
 async function createJob(jobData) {
   const res = await fetch(`${BASE_URL}/api/v1/jobs`, {
     method: 'POST',
@@ -280,11 +260,61 @@ function parseCsv(text) {
     .map((r) => Object.fromEntries(headers.map((h, idx) => [h, r[idx]])));
 }
 
+const DESCRIPTION_FETCH_TIMEOUT_MS = 5000;
+const DESCRIPTION_FETCH_CONCURRENCY = 4;
+const META_DESCRIPTION_RE = /<meta[^>]+(?:name=["']description["'][^>]+content=["']([^"']+)["']|content=["']([^"']+)["'][^>]+name=["']description["'])/i;
+
+/**
+ * Fast mode's own `about`/`descriptions` CSV columns come back empty — only
+ * the scraper's browser-based mode (broken upstream, see leads-scraper.cjs's
+ * module doc) populates them. A short, best-effort substitute: pull the
+ * business's own `<meta name="description">` tag, reusing the same website
+ * visit the "-email" flag already makes visible via the `website` column, so
+ * this only runs (and only costs the extra requests) when email lookup was on.
+ */
+async function fetchMetaDescription(url) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DESCRIPTION_FETCH_TIMEOUT_MS);
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PorticoLeads/1.0)' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return '';
+    const html = await res.text();
+    const match = html.match(META_DESCRIPTION_RE);
+    const content = match?.[1] ?? match?.[2] ?? '';
+    return content.trim().slice(0, 500);
+  } catch {
+    return '';
+  }
+}
+
+async function enrichWithDescriptions(rows) {
+  const queue = rows.filter((row) => row.website);
+  let next = 0;
+  async function worker() {
+    while (next < queue.length) {
+      const row = queue[next++];
+      row.description = await fetchMetaDescription(row.website);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(DESCRIPTION_FETCH_CONCURRENCY, queue.length) }, worker));
+}
+
 async function downloadAndParseJob(id) {
   const res = await fetch(`${BASE_URL}/api/v1/jobs/${encodeURIComponent(id)}/download`);
   if (!res.ok) throw new Error(`Failed to download job results: ${res.status}`);
   const text = await res.text();
-  return parseCsv(text);
+  const rows = parseCsv(text);
+
+  const job = await getJob(id).catch(() => null);
+  if (job?.Data?.email && rows.length > 0) {
+    await enrichWithDescriptions(rows);
+  }
+
+  return rows;
 }
 
 function killServer() {
@@ -302,7 +332,6 @@ function killServer() {
 module.exports = {
   isAvailable,
   ensureReady,
-  geocode,
   createJob,
   listJobs,
   getJob,

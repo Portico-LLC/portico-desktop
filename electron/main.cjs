@@ -640,7 +640,6 @@ function registerIpcHandlers() {
   ipcMain.handle('leads:ensure-ready', () =>
     leadsScraper.ensureReady((progress) => mainWindow?.webContents.send('leads:install-progress', progress)),
   );
-  ipcMain.handle('leads:geocode', (_e, query) => leadsScraper.geocode(query));
   ipcMain.handle('leads:create-job', (_e, jobData) => leadsScraper.createJob(jobData));
   ipcMain.handle('leads:list-jobs', () => leadsScraper.listJobs());
   ipcMain.handle('leads:get-job', (_e, id) => leadsScraper.getJob(id));

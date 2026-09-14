@@ -60,13 +60,6 @@ export interface LeadsInstallProgress {
   chunk?: string;
 }
 
-/** Result of geocoding a place name via OpenStreetMap Nominatim — decimal
- *  degrees as strings, matching the shape the scraper's JobData expects. */
-export interface LeadsGeocodeResult {
-  lat: string;
-  lon: string;
-}
-
 /** Mirrors gosom/google-maps-scraper's `JobData` request/response shape (its
  *  `-web` REST API — see web/job.go upstream). */
 export interface LeadsJobData {
@@ -157,7 +150,6 @@ export interface PorticoBridge {
   leads: {
     getStatus: () => Promise<LeadsScraperAvailability>;
     ensureReady: () => Promise<LeadsScraperReadyResult>;
-    geocode: (query: string) => Promise<LeadsGeocodeResult | null>;
     createJob: (jobData: LeadsCreateJobPayload) => Promise<{ id: string }>;
     listJobs: () => Promise<LeadsJob[]>;
     getJob: (id: string) => Promise<LeadsJob>;

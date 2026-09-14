@@ -244,6 +244,10 @@ export interface Lead {
   status?: string;
   notes?: string;
   convertedClientId?: string;
+  latitude?: number;
+  longitude?: number;
+  openingHours?: Record<string, string[]>;
+  description?: string;
   createdAt: string;
 }
 

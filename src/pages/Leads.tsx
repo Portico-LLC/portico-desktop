@@ -9,6 +9,9 @@ import { api, cleanPayload, getErrorMessage } from '@/lib/api';
 import { isElectron } from '@/lib/isElectron';
 import type { Lead } from '@/lib/types';
 import type { LeadsJob, LeadsScrapedRow } from '@/types/electron';
+import { resolveLeadsAnchor, widenLeadsAnchor } from '@/lib/leadsLocation';
+import type { LeadsLocationSelection } from '@/lib/leadsLocation';
+import { LocationPicker } from '@/components/leads/LocationPicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Label } from '@/components/ui/Label';
@@ -18,10 +21,10 @@ import { Switch } from '@/components/ui/Switch';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Avatar } from '@/components/ui/Avatar';
-import { MapPin, Search, UserPlus } from 'lucide-react';
+import { MapPin, Search, UserPlus, ChevronDown, Clock, FileText, ExternalLink } from 'lucide-react';
 
 const searchSchema = z.object({
-  keywords: z.string().min(1, 'Enter at least one search line'),
+  keywords: z.string().min(1, 'Enter at least one business type'),
   lang: z.string().min(2).max(2),
   depth: z.number().int().min(1).max(20),
   maxTimeMinutes: z.number().int().min(3).max(30),
@@ -40,22 +43,36 @@ const ACTIVE_JOB_STATUSES: LeadsJob['Status'][] = ['pending', 'working'];
 
 type ImportStatus =
   | { state: 'importing' }
+  | { state: 'retrying' }
   | { state: 'imported'; count: number }
   | { state: 'no-results' }
   | { state: 'failed'; error: string };
 
 /** Maps a row of the scraper's CSV (raw column names — see upstream
  *  gosom/google-maps-scraper's "Extracted Data Points" docs) onto Portico's own
- *  `/leads/import` shape. */
-function rowToImportPayload(row: LeadsScrapedRow) {
+ *  `/leads/import` shape. `fallbackCategory` is the keyword that was searched
+ *  for — fast mode's own `category` column comes back empty, so the search
+ *  term itself is the best category info available without it. */
+function rowToImportPayload(row: LeadsScrapedRow, fallbackCategory?: string) {
   const num = (v?: string) => (v && v.trim() !== '' ? Number(v) : undefined);
   // The scraper's `emails` column is a comma-joined list when a business has
   // more than one address on file (Go's `strings.Join(emails, ", ")`) — only
   // the first is usable as a single Lead.email value.
   const firstEmail = row.emails?.split(',')[0]?.trim();
+  // `open_hours` is a JSON object serialized into one CSV cell (e.g.
+  // {"Monday":["6:30 AM–9 PM"]}) — parse it back into a real object for the
+  // jsonb column, or drop it if it's missing/malformed rather than storing
+  // the literal string "null" the scraper writes for no data.
+  let openingHours: Record<string, string[]> | undefined;
+  try {
+    const parsed = row.open_hours ? JSON.parse(row.open_hours) : null;
+    if (parsed && typeof parsed === 'object') openingHours = parsed;
+  } catch {
+    // Malformed/absent — leave undefined.
+  }
   return cleanPayload({
     name: row.title || row.name,
-    category: row.category,
+    category: row.category || fallbackCategory,
     // `complete_address` is a JSON-serialized struct on the scraper's side, not
     // a display string — `address` is the plain human-readable one.
     address: row.address || row.complete_address,
@@ -68,20 +85,23 @@ function rowToImportPayload(row: LeadsScrapedRow) {
     placeId: row.place_id,
     cid: row.cid,
     source: 'google_maps',
+    latitude: num(row.latitude),
+    longitude: num(row.longitude),
+    openingHours,
+    // Best-effort only — fast mode's own `about`/`descriptions` columns come
+    // back empty; `description` here is a website meta-description the
+    // scraper wrapper adds itself when email lookup is on (see
+    // leads-scraper.cjs's enrichWithDescriptions), not Google's own text.
+    description: row.description,
   }) as Record<string, unknown>;
 }
 
-/** Best-effort split of a search line into its location, e.g. "coffee shops in
- *  Tunisia" -> "Tunisia" or "coffee shops, Austin, TX" -> "Austin, TX". The
- *  form has no separate location field — keywords and place are one free-text
- *  line — so this is what gets geocoded before creating a job. Falls back to
- *  the whole line when neither pattern is found. */
-function extractLocationText(query: string): string {
-  const afterIn = query.match(/\bin\s+(.+)$/i);
-  if (afterIn) return afterIn[1].trim();
-  const lastComma = query.lastIndexOf(',');
-  if (lastComma !== -1) return query.slice(lastComma + 1).trim();
-  return query.trim();
+const WEEKDAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+/** `lead.openingHours` is `{"Monday":["6:30 AM–9 PM"], ...}` — one line per
+ *  weekday present, in week order regardless of the order the API returned. */
+function formatOpeningHours(hours: Record<string, string[]>): { day: string; text: string }[] {
+  return WEEKDAY_ORDER.filter((day) => hours[day]?.length).map((day) => ({ day, text: hours[day].join(', ') }));
 }
 
 function readyReasonMessage(reason?: string, message?: string): string {
@@ -151,7 +171,13 @@ function LeadsPage() {
   const queryClient = useQueryClient();
   const [readyState, setReadyState] = useState<'idle' | 'installing' | 'starting' | 'ready' | 'error'>('idle');
   const [readyError, setReadyError] = useState<string | null>(null);
+  const [location, setLocation] = useState<LeadsLocationSelection | null>(null);
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
   const handledJobIds = useRef<Set<string>>(new Set());
+  // Jobs that have already used their one zero-result retry — checked both for
+  // a job about to be retried and pre-marked for the retry job itself, so a
+  // retry's retry never fires.
+  const retriedJobIds = useRef<Set<string>>(new Set());
 
   const { data: availability } = useQuery({
     queryKey: ['leads-scraper-availability'],
@@ -192,11 +218,37 @@ function LeadsPage() {
         .downloadJob(job.ID)
         .then(async (rows) => {
           if (rows.length === 0) {
+            // One safety-net retry with a wider radius before giving up —
+            // covers a genuinely sparse area (a small town with few of
+            // whatever was searched) without failing on the very first try.
+            if (!retriedJobIds.current.has(job.ID)) {
+              retriedJobIds.current.add(job.ID);
+              try {
+                const widened = widenLeadsAnchor({
+                  lat: job.Data.lat,
+                  lon: job.Data.lon,
+                  radius: job.Data.radius,
+                  resolvedCityName: '',
+                });
+                const retryJob = await leadsBridge.createJob({
+                  ...job.Data,
+                  name: `${job.Name} (wider search)`,
+                  radius: widened.radius,
+                });
+                retriedJobIds.current.add(retryJob.id);
+                setImportStatus((s) => ({ ...s, [job.ID]: { state: 'retrying' } }));
+                queryClient.invalidateQueries({ queryKey: ['leads-scrape-jobs'] });
+                return;
+              } catch (err) {
+                console.error('Failed to retry empty search with a wider radius', err);
+                // Fall through to reporting no-results below.
+              }
+            }
             setImportStatus((s) => ({ ...s, [job.ID]: { state: 'no-results' } }));
             return;
           }
           const res = await api.post<{ imported: number; skipped: number }>('/leads/import', {
-            leads: rows.map(rowToImportPayload),
+            leads: rows.map((row) => rowToImportPayload(row, job.Data.keywords[0])),
           });
           queryClient.invalidateQueries({ queryKey: ['leads'] });
           setImportStatus((s) => ({ ...s, [job.ID]: { state: 'imported', count: res.data.imported } }));
@@ -212,57 +264,42 @@ function LeadsPage() {
   const createJobMutation = useMutation({
     mutationFn: async (data: SearchForm) => {
       setReadyError(null);
+      if (!location) throw new Error('Choose a location to search in.');
+      const anchor = resolveLeadsAnchor(location);
+      if (!anchor) throw new Error("Couldn't resolve that location — try picking a different one.");
+
       const result = await leadsBridge.ensureReady();
       if (!result.ok) throw new Error(readyReasonMessage(result.reason, result.message));
       setReadyState('ready');
-      const lines = data.keywords
-        .split('\n')
-        .map((k) => k.trim())
-        .filter(Boolean);
 
       // The bundled scraper's normal (Playwright/headless-browser) mode has a
       // reproducible upstream bug — every search fails with "unexpected page
       // type" regardless of query or coordinates. Its fast mode (a plain HTTP
       // fetch, no browser) works, but it flatly requires real coordinates —
       // "0,0" or an empty geo returns zero results just like normal mode did.
-      // The form has no separate location field, so each line's place name is
-      // pulled out with extractLocationText() and geocoded individually — one
-      // scraper job per line, since a job only accepts one lat/lon for all its
-      // keywords. depth is still sent for LeadsJobData's sake, but fast mode
-      // has no pagination/scroll-depth concept, so it has no effect there.
-      const unresolved: string[] = [];
-      let created = 0;
+      // `anchor` never uses a raw region centroid on its own (see
+      // resolveLeadsAnchor) — it's always a real, nearby city, which is what
+      // makes this reliable regardless of how broad a location is picked.
+      const keywords = data.keywords
+        .split('\n')
+        .map((k) => k.trim())
+        .filter(Boolean);
 
-      for (const line of lines) {
-        const geo = await leadsBridge.geocode(extractLocationText(line)).catch(() => null);
-        if (!geo) {
-          unresolved.push(line);
-          continue;
-        }
-        await leadsBridge.createJob({
-          name: line,
-          keywords: [line],
-          lang: data.lang,
-          zoom: 13,
-          lat: geo.lat,
-          lon: geo.lon,
-          fast_mode: true,
-          radius: 10000,
-          depth: data.depth,
-          email: data.email,
-          extra_reviews: false,
-          max_time: data.maxTimeMinutes * 60,
-          proxies: [],
-        });
-        created += 1;
-      }
-
-      if (created === 0) {
-        throw new Error(`Couldn't find a location for: ${unresolved.join(', ')}`);
-      }
-      if (unresolved.length > 0) {
-        setReadyError(`Started, but couldn't find a location for: ${unresolved.join(', ')}`);
-      }
+      await leadsBridge.createJob({
+        name: `${keywords.join(', ')} — near ${anchor.resolvedCityName}`,
+        keywords,
+        lang: data.lang,
+        zoom: 13,
+        lat: anchor.lat,
+        lon: anchor.lon,
+        fast_mode: true,
+        radius: anchor.radius,
+        depth: data.depth,
+        email: data.email,
+        extra_reviews: false,
+        max_time: data.maxTimeMinutes * 60,
+        proxies: [],
+      });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads-scrape-jobs'] }),
     onError: (err) => setReadyError(getErrorMessage(err)),
@@ -316,10 +353,11 @@ function LeadsPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit((data) => createJobMutation.mutate(data))} className="space-y-4">
+              <LocationPicker value={location} onChange={setLocation} />
               <div className="space-y-2">
-                <Label htmlFor="keywords">Search queries</Label>
-                <Textarea id="keywords" placeholder={'dentists in Berlin\ncoffee shops in Austin, TX'} rows={3} {...register('keywords')} />
-                <p className="text-xs text-ink-400">One search per line — business type and location, like the examples above.</p>
+                <Label htmlFor="keywords">Business types</Label>
+                <Textarea id="keywords" placeholder={'dentists\ncoffee shops'} rows={3} {...register('keywords')} />
+                <p className="text-xs text-ink-400">One per line — each is searched in the location above.</p>
                 {errors.keywords && <p className="text-xs text-terracotta-600">{errors.keywords.message}</p>}
               </div>
               <div className="grid grid-cols-3 gap-4">
@@ -353,8 +391,10 @@ function LeadsPage() {
               <div className="flex items-center gap-3">
                 <Controller control={control} name="email" render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />} />
                 <div>
-                  <Label>Also look up emails</Label>
-                  <p className="text-xs text-ink-400">Visits each business's website — slower, but fills in an email when one is public.</p>
+                  <Label>Also look up emails &amp; descriptions</Label>
+                  <p className="text-xs text-ink-400">
+                    Visits each business's website — slower, but fills in an email and a short description when public.
+                  </p>
                 </div>
               </div>
 
@@ -387,15 +427,16 @@ function LeadsPage() {
                 return (
                   <div key={job.ID} className="flex items-center justify-between p-4">
                     <div>
-                      <p className="text-sm font-medium text-ink-900">{job.Data.keywords.join(', ')}</p>
+                      <p className="text-sm font-medium text-ink-900">{job.Name || job.Data.keywords.join(', ')}</p>
                       <p className="text-xs text-ink-400">{new Date(job.Date).toLocaleString()}</p>
                       {imp?.state === 'importing' && <p className="text-xs text-ink-400">Adding leads…</p>}
+                      {imp?.state === 'retrying' && <p className="text-xs text-ink-400">No results — trying a wider search…</p>}
                       {imp?.state === 'imported' && (
                         <p className="text-xs text-moss-600">
                           {imp.count} lead{imp.count === 1 ? '' : 's'} added
                         </p>
                       )}
-                      {imp?.state === 'no-results' && <p className="text-xs text-ink-400">No results found for this search.</p>}
+                      {imp?.state === 'no-results' && <p className="text-xs text-ink-400">No results found, even after widening the search.</p>}
                       {imp?.state === 'failed' && <p className="text-xs text-terracotta-600">Couldn't add leads: {imp.error}</p>}
                     </div>
                     <Badge variant={meta.variant}>{meta.label}</Badge>
@@ -424,29 +465,98 @@ function LeadsPage() {
             <div className="py-12 text-center text-sm text-ink-400">No leads yet. Run a search above.</div>
           ) : (
             <div className="divide-y divide-ink-200">
-              {leads.map((lead) => (
-                <div key={lead.id} className="flex items-center justify-between p-4 transition-colors hover:bg-ink-50">
-                  <div className="flex items-center gap-4">
-                    <Avatar name={lead.name} />
-                    <div>
-                      <p className="font-medium text-ink-900">{lead.name}</p>
-                      {lead.category && <p className="text-sm text-ink-400">{lead.category}</p>}
-                      {(lead.phone || lead.email) && <p className="text-xs text-ink-400">{[lead.phone, lead.email].filter(Boolean).join(' · ')}</p>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={lead.status === 'converted' ? 'moss' : lead.status === 'discarded' ? 'terracotta' : 'neutral'}>
-                      {lead.status || 'new'}
-                    </Badge>
-                    {lead.status !== 'converted' && (
-                      <Button variant="secondary" size="sm" onClick={() => convertMutation.mutate(lead.id)} disabled={convertMutation.isPending}>
-                        <UserPlus size={14} />
-                        Convert to Client
-                      </Button>
+              {leads.map((lead) => {
+                const expanded = expandedLeadId === lead.id;
+                const hours = lead.openingHours ? formatOpeningHours(lead.openingHours) : [];
+                const mapUrl =
+                  lead.latitude != null && lead.longitude != null
+                    ? `https://www.google.com/maps/search/?api=1&query=${lead.latitude},${lead.longitude}`
+                    : lead.sourceUrl;
+                return (
+                  <div key={lead.id} className="transition-colors hover:bg-ink-50">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-4 p-4 text-left"
+                      onClick={() => setExpandedLeadId(expanded ? null : lead.id)}
+                    >
+                      <div className="flex items-center gap-4">
+                        <Avatar name={lead.name} />
+                        <div>
+                          <p className="font-medium text-ink-900">{lead.name}</p>
+                          {lead.category && <p className="text-sm text-ink-400">{lead.category}</p>}
+                          {(lead.phone || lead.email) && (
+                            <p className="text-xs text-ink-400">{[lead.phone, lead.email].filter(Boolean).join(' · ')}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={lead.status === 'converted' ? 'moss' : lead.status === 'discarded' ? 'terracotta' : 'neutral'}>
+                          {lead.status || 'new'}
+                        </Badge>
+                        <ChevronDown size={16} className={`text-ink-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+
+                    {expanded && (
+                      <div className="space-y-3 px-4 pb-4 pl-[4.25rem]">
+                        {lead.address && <p className="text-sm text-ink-600">{lead.address}</p>}
+
+                        {lead.description && (
+                          <p className="flex items-start gap-2 text-sm text-ink-600">
+                            <FileText size={14} className="mt-0.5 flex-shrink-0 text-ink-400" />
+                            {lead.description}
+                          </p>
+                        )}
+
+                        {hours.length > 0 && (
+                          <div className="flex items-start gap-2 text-sm text-ink-600">
+                            <Clock size={14} className="mt-0.5 flex-shrink-0 text-ink-400" />
+                            <div>
+                              {hours.map((h) => (
+                                <p key={h.day}>
+                                  <span className="text-ink-400">{h.day}:</span> {h.text}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-4 text-sm">
+                          {mapUrl && (
+                            <a
+                              href={mapUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1 text-brass-700 hover:underline"
+                            >
+                              <MapPin size={14} /> View on map <ExternalLink size={12} />
+                            </a>
+                          )}
+                          {lead.website && (
+                            <a
+                              href={lead.website}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1 text-brass-700 hover:underline"
+                            >
+                              Website <ExternalLink size={12} />
+                            </a>
+                          )}
+                        </div>
+
+                        <div>
+                          {lead.status !== 'converted' && (
+                            <Button variant="secondary" size="sm" onClick={() => convertMutation.mutate(lead.id)} disabled={convertMutation.isPending}>
+                              <UserPlus size={14} />
+                              Convert to Client
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
