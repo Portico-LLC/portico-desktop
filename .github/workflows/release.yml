@@ -1,8 +1,8 @@
 name: Build & Release
 
-# Every push to main runs both builders in parallel and republishes the release
-# for whatever version portico-desktop/package.json currently declares. Bump that
-# version to cut a new release instead of overwriting the existing one.
+# Every push to main runs all three builders in parallel and republishes the
+# release for whatever version portico-desktop/package.json currently declares.
+# Bump that version to cut a new release instead of overwriting the existing one.
 on:
   push:
     branches: [main]
@@ -20,21 +20,27 @@ jobs:
     name: Build ${{ matrix.label }}
     runs-on: ${{ matrix.runner }}
     strategy:
-      # Two runners, started together. A failure on one platform must still
-      # leave the other platform's installer available.
+      # Three runners, started together. A failure on one platform must still
+      # leave the other platforms' installers available.
       fail-fast: false
       matrix:
         include:
           - label: Windows (x64)
             runner: windows-latest
             script: build:win
-            artifact: Portico-Setup.exe
+            artifact: release/Portico-Setup.exe
           # macos-14 runners are Apple Silicon hosts, so this is a native arm64
           # build rather than a cross-compile.
           - label: macOS (Apple Silicon)
             runner: macos-14
             script: build:mac
-            artifact: Portico-arm64.dmg
+            artifact: release/Portico-arm64.dmg
+          - label: Linux (deb & rpm)
+            runner: ubuntu-latest
+            script: build:linux
+            artifact: |
+              release/Portico.deb
+              release/Portico.rpm
 
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +52,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Linux packaging tools
+        # electron-builder's rpm target shells out to a system `rpmbuild`,
+        # which ubuntu-latest doesn't ship. xz-utils backs the deb/rpm
+        # compression step; installing it too is cheap insurance.
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm xz-utils
 
       - name: Build
         run: npm run ${{ matrix.script }}
@@ -59,17 +72,20 @@ jobs:
       - name: Verify the installer exists
         shell: bash
         run: |
-          if [ ! -f "release/${{ matrix.artifact }}" ]; then
-            echo "::error::Expected release/${{ matrix.artifact }} but it was not produced."
-            ls -la release || true
-            exit 1
-          fi
-          ls -lh "release/${{ matrix.artifact }}"
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            if [ ! -f "$file" ]; then
+              echo "::error::Expected $file but it was not produced."
+              ls -la release || true
+              exit 1
+            fi
+            ls -lh "$file"
+          done <<< "${{ matrix.artifact }}"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: release/${{ matrix.artifact }}
+          name: ${{ matrix.label }}
+          path: ${{ matrix.artifact }}
           if-no-files-found: error
           retention-days: 14
 
@@ -107,7 +123,7 @@ jobs:
           shopt -s nullglob
           FILES=(artifacts/*)
           if [ ${#FILES[@]} -eq 0 ]; then
-            echo "::error::Both builders failed — there is nothing to release."
+            echo "::error::All builders failed — there is nothing to release."
             exit 1
           fi
 

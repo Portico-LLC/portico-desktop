@@ -1,7 +1,7 @@
 # Portico Desktop
 
 The desktop build of [Portico](https://github.com/Portico-LLC) — an Electron shell around
-the Portico client-portal app, packaged for Windows and macOS.
+the Portico client-portal app, packaged for Windows, macOS, and Linux.
 
 ## Download
 
@@ -9,6 +9,8 @@ the Portico client-portal app, packaged for Windows and macOS.
 | --- | --- |
 | Windows 10/11 (64-bit) | [Portico-Setup.exe](https://github.com/Portico-LLC/portico-desktop/releases/latest/download/Portico-Setup.exe) |
 | macOS 12+ (Apple Silicon) | [Portico-arm64.dmg](https://github.com/Portico-LLC/portico-desktop/releases/latest/download/Portico-arm64.dmg) |
+| Linux — Debian/Ubuntu (64-bit) | [Portico.deb](https://github.com/Portico-LLC/portico-desktop/releases/latest/download/Portico.deb) |
+| Linux — Fedora/RHEL (64-bit) | [Portico.rpm](https://github.com/Portico-LLC/portico-desktop/releases/latest/download/Portico.rpm) |
 
 ### First launch on macOS
 
@@ -44,6 +46,7 @@ npm install
 npm run dev          # vite + electron with live reload
 npm run build:win    # -> release/Portico-Setup.exe
 npm run build:mac    # -> release/Portico-arm64.dmg  (must run on macOS)
+npm run build:linux  # -> release/Portico.deb, release/Portico.rpm  (must run on Linux; needs `rpm` + `xz-utils` installed for the rpm target)
 npm run typecheck    # tsc -b
 ```
 
@@ -53,8 +56,9 @@ variable can't block a release build.
 
 ## Releases
 
-Every push to `main` runs two builders in parallel (`windows-latest`, `macos-14`) and
-publishes both installers to the release matching `package.json`'s `version`.
+Every push to `main` runs three builders in parallel (`windows-latest`, `macos-14`,
+`ubuntu-latest`) and publishes all installers to the release matching `package.json`'s
+`version`.
 
 Re-pushing the same version **replaces** that release's binaries. To cut a new release,
 bump `version` in `package.json` and push.
