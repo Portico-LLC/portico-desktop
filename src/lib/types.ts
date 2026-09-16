@@ -839,7 +839,7 @@ export interface DocumentQuota {
 
 // ---------------- Arcade ----------------
 
-export type GameType = 'snake_royale' | 'doodle_relay' | 'word_bomb' | 'chess';
+export type GameType = 'doodle_relay' | 'word_bomb' | 'chess';
 export type GameRoomStatus = 'lobby' | 'starting' | 'in_progress' | 'finished' | 'abandoned';
 export type GameRoomVisibility = 'open' | 'invite_only';
 export type GameRoomMemberType = 'owner' | 'employee' | 'bot';
@@ -1096,61 +1096,6 @@ export interface ChessOpponentDisconnectedPayload {
   roomId: string;
   seat: number;
   graceMs: number;
-}
-
-// Snake Royale realtime payloads — snake:tick fires ~15x/sec (server tick rate), never
-// persisted verbatim (see snake-royale.engine.ts).
-
-export type Direction = 'up' | 'down' | 'left' | 'right';
-
-export interface GridPoint {
-  x: number;
-  y: number;
-}
-
-export interface SnakeSnapshotEntry {
-  seat: number;
-  alive: boolean;
-  segments: GridPoint[];
-  length: number;
-}
-
-export interface ArenaBounds {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-}
-
-export interface SnakeRoundStartPayload {
-  roomId: string;
-  roundNumber: number;
-  gridSize: number;
-  tickMs: number;
-  snakes: SnakeSnapshotEntry[];
-  pickups: GridPoint[];
-  arenaBounds: ArenaBounds;
-}
-
-export interface SnakeTickPayload {
-  roomId: string;
-  tick: number;
-  snakes: SnakeSnapshotEntry[];
-  pickups: GridPoint[];
-  arenaBounds: ArenaBounds;
-  deaths: number[];
-}
-
-export interface SnakeRoundEndPayload {
-  roomId: string;
-  roundNumber: number;
-  winnerSeat: number | null;
-  standings: { seat: number; roundsWon: number; score: number }[];
-}
-
-export interface SnakeMatchEndPayload {
-  roomId: string;
-  players: { seat: number; placement?: number; won: boolean; score: number; roundsWon: number }[];
 }
 
 // Doodle Relay realtime payloads. Strokes are pure ephemeral relay, never persisted.

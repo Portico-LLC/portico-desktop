@@ -20,7 +20,7 @@ export interface ChessLastMove {
   to: string;
 }
 
-/** Same shape as useWordBombSocket/useSnakeRoyaleSocket: register listeners, then
+/** Same shape as useWordBombSocket/useDoodleRelaySocket: register listeners, then
  *  `game:resume` (never before — see the interface doc on GameEngine.getResumeEvents), expose
  *  emitters. `chess:state` and `chess:round:start` share one handler since both carry the
  *  engine's full canonical snapshot; `chess:move:applied` patches that snapshot incrementally

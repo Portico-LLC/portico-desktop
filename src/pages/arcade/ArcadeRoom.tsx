@@ -7,12 +7,11 @@ import { useAuthStore } from '@/store/auth';
 import { getArcadeSocket } from '@/lib/arcadeSocket';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { GAME_META } from '@/lib/arcade/gameMeta';
+import { GAME_META, UNKNOWN_GAME_META } from '@/lib/arcade/gameMeta';
 import { LobbySeatGrid } from './components/LobbySeatGrid';
 import { InvitePickerDialog } from './components/InvitePickerDialog';
 import { ResultsScreen } from './components/ResultsScreen';
 import { WordBombStage } from './games/word-bomb/WordBombStage';
-import { SnakeRoyaleBoard } from './games/snake-royale/SnakeRoyaleBoard';
 import { DoodleRelayStage } from './games/doodle-relay/DoodleRelayStage';
 import { ChessStage } from './games/chess/ChessStage';
 import type { GameRoomDetail, GameRoomMember, GameRoomMemberType, RoomStartingPayload } from '@/lib/types';
@@ -165,7 +164,7 @@ export function ArcadeRoom() {
   }
 
   const myMember = room.members.find(isMe);
-  const meta = GAME_META[room.gameType];
+  const meta = GAME_META[room.gameType] ?? UNKNOWN_GAME_META;
 
   return (
     <div className="p-8">
@@ -238,8 +237,6 @@ export function ArcadeRoom() {
       ) : room.status === 'in_progress' ? (
         room.gameType === 'word_bomb' ? (
           <WordBombStage room={room} onMatchEnd={() => queryClient.invalidateQueries({ queryKey: ['arcade-room', roomId] })} />
-        ) : room.gameType === 'snake_royale' ? (
-          <SnakeRoyaleBoard room={room} onMatchEnd={() => queryClient.invalidateQueries({ queryKey: ['arcade-room', roomId] })} />
         ) : room.gameType === 'doodle_relay' ? (
           <DoodleRelayStage room={room} onMatchEnd={() => queryClient.invalidateQueries({ queryKey: ['arcade-room', roomId] })} />
         ) : room.gameType === 'chess' ? (

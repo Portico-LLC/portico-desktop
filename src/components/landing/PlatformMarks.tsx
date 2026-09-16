@@ -1,9 +1,9 @@
 /**
- * Windows and Apple marks as inline paths.
+ * Windows, Apple, and Linux marks as inline paths.
  *
  * lucide-react carries no brand logos, and pulling in a brand-icon package for
- * two glyphs isn't worth the dependency. Both are drawn on a 24×24 grid and
- * inherit `currentColor` so they sit inside the switch like any lucide icon.
+ * three glyphs isn't worth the dependency. All three are drawn on a 24×24 grid
+ * and inherit `currentColor` so they sit inside the switch like any lucide icon.
  */
 
 interface MarkProps {
@@ -50,6 +50,33 @@ export function AppleMark({ size = 16, className }: MarkProps) {
     >
       <path d="M16.7 12.6c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.1-1.5 2.6-.4 6.5 1.1 8.7.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7s1.6.7 2.8.7 1.9-1 2.6-2a9 9 0 0 0 1.2-2.4c-.1 0-2.2-.9-2.2-3.5Z" />
       <path d="M14.5 5.9c.6-.7 1-1.7.9-2.7-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-1 2.6 1 .1 2-.5 2.7-1.2Z" />
+    </svg>
+  );
+}
+
+/**
+ * The Tux silhouette — a rounded body with the belly punched out via an
+ * evenodd fill (so it reads as two-tone even at one `currentColor`), plus a
+ * pair of feet. Same restrained, flat-geometric treatment as the other marks.
+ */
+export function LinuxMark({ size = 16, className }: MarkProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      focusable="false"
+      className={className}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 3c3.5 0 6 3.1 6 7.4 0 3.5-1 6.7-2.5 9.2-.8 1.3-2.1 2-3.5 2s-2.7-.7-3.5-2C7 17.1 6 13.9 6 10.4 6 6.1 8.5 3 12 3Zm0 4c-1.8 0-3.2 1.7-3.2 4.9 0 2.6.8 5 1.9 6.7.4.6.9.9 1.3.9s.9-.3 1.3-.9c1.1-1.7 1.9-4.1 1.9-6.7C15.2 8.7 13.8 7 12 7Z"
+      />
+      <ellipse cx="9.2" cy="21.1" rx="1.6" ry="0.9" />
+      <ellipse cx="14.8" cy="21.1" rx="1.6" ry="0.9" />
     </svg>
   );
 }

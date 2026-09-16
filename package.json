@@ -1,7 +1,7 @@
 {
   "name": "portico-desktop",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Portico — desktop app for Windows, macOS, and Linux",
   "author": "Portico",
   "homepage": "https://portico.company",
@@ -83,7 +83,6 @@
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-slot": "^1.3.3",
     "@radix-ui/react-tooltip": "^1.2.16",
-    "@react-three/fiber": "^9.7.0",
     "@tanstack/react-query": "^5.101.4",
     "@tiptap/extension-placeholder": "^3.30.2",
     "@tiptap/react": "^3.30.2",
@@ -108,7 +107,6 @@
     "react-router-dom": "^7.18.2",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.185.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
@@ -118,7 +116,6 @@
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^6.0.4",
     "autoprefixer": "^10.5.4",
     "concurrently": "^10.0.4",

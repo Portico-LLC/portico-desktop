@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { getInitials } from '@/components/ui/Avatar';
 import { seatColor } from '@/lib/arcade/playerColors';
-import { GAME_META } from '@/lib/arcade/gameMeta';
+import { GAME_META, UNKNOWN_GAME_META } from '@/lib/arcade/gameMeta';
 import { motionTransition, springs } from '@/lib/motion/springs';
 import { cn } from '@/lib/utils';
 import type { GameRoomDetail, GameRoomResult } from '@/lib/types';
@@ -51,7 +51,7 @@ export function ResultsScreen({ room, isHost, onPlayAgain, onBackToHub, playAgai
         transition={motionTransition(reduce, springs.snappy)}
       >
         <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brass-600">
-          {GAME_META[result.gameType].label} · Best of {room.roundsTotal}
+          {(GAME_META[result.gameType] ?? UNKNOWN_GAME_META).label} · Best of {room.roundsTotal}
         </p>
         <h1 className="mb-8">{headline}</h1>
 

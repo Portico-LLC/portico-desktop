@@ -20,7 +20,7 @@ import { useAutomationsStore } from '@/store/automations';
 import { AutomationFlowNode, type AutomationNodeData } from './AutomationFlowNode';
 import { NodePalette, DRAG_DATA_TYPE } from './NodePalette';
 import { NODE_STYLES } from './automationNodeStyles';
-import type { WorkflowNodeConfig, WorkflowEdgeConfig, WorkflowNodeType } from '@/lib/types';
+import type { WorkflowNodeConfig, WorkflowEdgeConfig, WorkflowNodeType, WorkflowTriggerConfig } from '@/lib/types';
 
 const nodeTypes = { automationNode: AutomationFlowNode };
 const EDGE_STYLE = { stroke: 'var(--edge-color)', strokeWidth: 1.5 };
@@ -103,6 +103,7 @@ function AutomationCanvasInner({ onSelectNode }: { onSelectNode: (nodeId: string
   const workflow = useAutomationsStore((s) => s.workflow);
   const setNodesStore = useAutomationsStore((s) => s.setNodes);
   const setEdgesStore = useAutomationsStore((s) => s.setEdges);
+  const setTrigger = useAutomationsStore((s) => s.setTrigger);
 
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState<Edge>([]);
@@ -208,9 +209,12 @@ function AutomationCanvasInner({ onSelectNode }: { onSelectNode: (nodeId: string
       };
       setNodesStore([...(workflow?.nodes ?? []), newStoreNode]);
       setNodes((nds) => [...nds, toFlowNode(newStoreNode)]);
+      if (nodeType.startsWith('trigger.')) {
+        setTrigger({ type: nodeType, ...newStoreNode.data.config } as WorkflowTriggerConfig);
+      }
       onSelectNode(id);
     },
-    [screenToFlowPosition, setNodesStore, setNodes, workflow, onSelectNode],
+    [screenToFlowPosition, setNodesStore, setNodes, setTrigger, workflow, onSelectNode],
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {

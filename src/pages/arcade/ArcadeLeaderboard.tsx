@@ -15,7 +15,6 @@ import type { ArcadeLeaderboardRow, GameType } from '@/lib/types';
 const FILTERS: { id: GameType | 'all'; label: string }[] = [
   { id: 'all', label: 'All games' },
   { id: 'word_bomb', label: GAME_META.word_bomb.label },
-  { id: 'snake_royale', label: GAME_META.snake_royale.label },
   { id: 'doodle_relay', label: GAME_META.doodle_relay.label },
 ];
 

@@ -6,7 +6,7 @@ import { buttonVariants } from '@/components/ui/Button';
 import { BrandMark } from '@/components/brand/BrandMark';
 import { EASE_BRAND } from '@/components/brand/ArchMotif';
 import { springs, motionTransition } from '@/lib/motion/springs';
-import { AppleMark, WindowsMark } from '@/components/landing/PlatformMarks';
+import { AppleMark, LinuxMark, WindowsMark } from '@/components/landing/PlatformMarks';
 import {
   ALL_RELEASES_URL,
   DOWNLOADS,
@@ -20,6 +20,7 @@ import {
 const MARKS: Record<PlatformId, typeof WindowsMark> = {
   windows: WindowsMark,
   macos: AppleMark,
+  linux: LinuxMark,
 };
 
 const HEADLINE = ['Portico, out of', 'the browser.'];
@@ -404,6 +405,18 @@ export function DownloadSection() {
 
             <p className="mt-3 text-sm text-ink-500">{active.meta}</p>
 
+            {active.altFormat && (
+              <p className="mt-2 text-sm text-ink-500">
+                Prefer RPM?{' '}
+                <a
+                  href={active.altFormat.url}
+                  className="border-b border-ink-300 pb-0.5 transition-colors duration-hover ease-brand hover:border-brass-600 hover:text-ink-900"
+                >
+                  Download for {active.altFormat.label}
+                </a>
+              </p>
+            )}
+
             <AnimatePresence initial={false} mode="wait">
               {platform === 'macos' && <MacNotice key="mac-notice" reduce={reduce} />}
             </AnimatePresence>
@@ -433,7 +446,9 @@ export function DownloadSection() {
           >
             {platform === 'macos'
               ? 'On macOS, Portico keeps the native traffic lights and insets its title bar around them.'
-              : 'On Windows, Portico drops the system frame and draws its own title bar to match the app.'}
+              : platform === 'linux'
+                ? 'On Linux, Portico drops the system frame and draws its own title bar to match the app, the same as on Windows.'
+                : 'On Windows, Portico drops the system frame and draws its own title bar to match the app.'}
           </motion.p>
         </div>
       </div>

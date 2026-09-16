@@ -29,8 +29,7 @@ interface UseDoodleRelaySocketOptions {
   mySeatIndex: number | null;
   /** Strokes/clears are forwarded directly to the caller (the canvas draws them
    *  imperatively) rather than round-tripping through React state — ink is drawn once and
-   *  persists, so there's nothing to "re-render from," unlike Snake Royale's per-tick
-   *  positions. */
+   *  persists, so there's nothing to "re-render from." */
   onStroke: (payload: DoodleStrokePayload) => void;
   onClear: () => void;
   onMatchEnd?: (payload: DoodleMatchEndPayload) => void;

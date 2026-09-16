@@ -2,7 +2,7 @@ import { Users, Lock, Crown, Bot } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { GAME_META } from '@/lib/arcade/gameMeta';
+import { GAME_META, UNKNOWN_GAME_META } from '@/lib/arcade/gameMeta';
 import type { GameRoomSummary } from '@/lib/types';
 
 const STATUS_BADGE: Record<GameRoomSummary['status'], { label: string; variant: 'neutral' | 'moss' | 'ochre' | 'brass' }> = {
@@ -21,7 +21,7 @@ interface RoomCardProps {
 }
 
 export function RoomCard({ room, onOpen, onRequestJoin, requesting }: RoomCardProps) {
-  const meta = GAME_META[room.gameType];
+  const meta = GAME_META[room.gameType] ?? UNKNOWN_GAME_META;
   const status = STATUS_BADGE[room.status];
   const canRequest = room.status === 'lobby' && room.visibility === 'open' && !room.myStatus && !room.isHost;
 

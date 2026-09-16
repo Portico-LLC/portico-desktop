@@ -5,9 +5,9 @@ import { SceneStage, Plane, willChangeWhile } from './SceneStage';
 import { RollNumber } from './RollNumber';
 
 const STATS = [
-  { label: 'Active projects', value: '7', icon: Briefcase, tint: 'bg-pine-100 text-pine-700' },
-  { label: 'Due this week', value: '14', icon: CheckSquare, tint: 'bg-brass-100 text-brass-700' },
-  { label: 'Clients', value: null, icon: Users, tint: 'bg-moss-100 text-moss-700' },
+  { label: 'Active projects', value: '7', icon: Briefcase, tint: 'bg-pine-600 text-bone-50' },
+  { label: 'Due this week', value: '14', icon: CheckSquare, tint: 'bg-brass-600 text-bone-50' },
+  { label: 'Clients', value: null, icon: Users, tint: 'bg-moss-600 text-bone-50' },
 ];
 
 const PROJECTS = [
@@ -32,9 +32,12 @@ export function DashboardScene({ play }: { play: boolean }) {
     // 4:3 stage is shorter than its content on phones and the front-plane toast
     // ends up landing on top of the project list.
     <SceneStage className="aspect-[3/4] w-full sm:aspect-[4/3]">
-      {/* Back — a second surface, just enough to imply the app continues */}
+      {/* Back — an ambient glow, not a second hard-edged surface: a bordered
+          rect here would show through the now-translucent glass window above
+          it as a visible seam, so this is a soft blurred blob with no edge to
+          catch. */}
       <Plane name="back" className="flex items-center justify-center" style={willChangeWhile(play)}>
-        <div className="h-[78%] w-[86%] -translate-y-6 translate-x-10 rounded-lg border border-ink-800 bg-ink-900" />
+        <div className="h-[70%] w-[70%] -translate-y-4 translate-x-8 rounded-full bg-gradient-to-br from-brass-700/40 via-pine-800/30 to-transparent blur-3xl" />
       </Plane>
 
       {/* Mid — the window itself */}
@@ -44,14 +47,14 @@ export function DashboardScene({ play }: { play: boolean }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.55, ease: EASE_BRAND, delay: 0.15 }}
-          className="w-[94%] overflow-hidden rounded-lg border border-ink-300 bg-bone-50 shadow-lg"
+          className="w-[94%] overflow-hidden rounded-lg border border-white/15 bg-gradient-to-br from-white/10 via-ink-950/45 to-ink-950/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.03),0_24px_60px_rgba(0,0,0,0.4)] backdrop-blur-xl backdrop-saturate-150"
         >
           {/* Window chrome */}
-          <div className="flex items-center gap-1.5 border-b border-ink-200 bg-bone-100 px-3 py-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-ink-300" />
-            <span className="h-1.5 w-1.5 rounded-full bg-ink-300" />
-            <span className="h-1.5 w-1.5 rounded-full bg-ink-300" />
-            <p className="ml-1.5 text-[9px] font-medium text-ink-500">Portico</p>
+          <div className="flex items-center gap-1.5 border-b border-white/10 bg-white/5 px-3 py-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-bone-50/30" />
+            <span className="h-1.5 w-1.5 rounded-full bg-bone-50/30" />
+            <span className="h-1.5 w-1.5 rounded-full bg-bone-50/30" />
+            <p className="ml-1.5 text-[9px] font-medium text-bone-200/70">Portico</p>
           </div>
 
           <div className="p-3">
@@ -64,17 +67,17 @@ export function DashboardScene({ play }: { play: boolean }) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, ease: EASE_BRAND, delay: 0.3 + i * 0.07 }}
-                  className="flex-1 rounded-md border border-ink-200 bg-bone-100 p-2"
+                  className="flex-1 rounded-md border border-white/10 bg-white/5 p-2 backdrop-blur-md"
                 >
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-sm ${stat.tint}`}
                   >
                     <stat.icon size={11} />
                   </span>
-                  <p className="mt-1.5 text-[8px] font-medium leading-none text-ink-500">
+                  <p className="mt-1.5 text-[8px] font-medium leading-none text-bone-200/60">
                     {stat.label}
                   </p>
-                  <p className="mt-1 text-lg font-semibold leading-none text-ink-900 tabular-nums">
+                  <p className="mt-1 text-lg font-semibold leading-none text-bone-50 tabular-nums">
                     {stat.value ?? (
                       <RollNumber values={[8, 9, 10, 11, 12, 8]} play={play} duration={7.5} />
                     )}
@@ -89,21 +92,21 @@ export function DashboardScene({ play }: { play: boolean }) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.45, ease: EASE_BRAND, delay: 0.5 }}
-              className="mt-2.5 rounded-md border border-ink-200 bg-bone-100"
+              className="mt-2.5 rounded-md border border-white/10 bg-white/5 backdrop-blur-md"
             >
-              <div className="border-b border-ink-200 px-2.5 py-1.5">
-                <p className="text-[9px] font-medium text-ink-900">Recent projects</p>
+              <div className="border-b border-white/10 px-2.5 py-1.5">
+                <p className="text-[9px] font-medium text-bone-50">Recent projects</p>
               </div>
               <div className="space-y-2 px-2.5 py-2.5">
                 {PROJECTS.map((project, i) => (
                   <div key={project.name}>
                     <div className="flex items-baseline justify-between">
-                      <p className="text-[9px] font-medium text-ink-700">{project.name}</p>
-                      <p className="text-[8px] tabular-nums text-ink-400">
+                      <p className="text-[9px] font-medium text-bone-200/80">{project.name}</p>
+                      <p className="text-[8px] tabular-nums text-bone-200/50">
                         {Math.round(project.pct * 100)}%
                       </p>
                     </div>
-                    <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-ink-200">
+                    <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-white/10">
                       <motion.div
                         className="h-full rounded-full bg-pine-600"
                         style={{ transformOrigin: 'left' }}
@@ -132,7 +135,7 @@ export function DashboardScene({ play }: { play: boolean }) {
         style={willChangeWhile(play)}
       >
         <motion.div
-          className="flex items-center gap-2 rounded-md border border-ink-200 bg-bone-100 px-3 py-2 shadow-lg"
+          className="flex items-center gap-2 rounded-md border border-white/15 bg-ink-950/50 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-lg backdrop-saturate-150"
           initial={{ opacity: 0, y: 10 }}
           animate={play ? { opacity: [0, 1, 1, 0], y: [10, 0, 0, -8] } : { opacity: 0, y: 10 }}
           transition={
@@ -144,8 +147,8 @@ export function DashboardScene({ play }: { play: boolean }) {
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moss-500 text-bone-50">
             <Check size={11} strokeWidth={3} />
           </span>
-          <span className="text-[10px] font-medium text-ink-900">Invoice PT-2214 paid</span>
-          <span className="text-[10px] tabular-nums text-ink-400">$4,820.00</span>
+          <span className="text-[10px] font-medium text-bone-50">Invoice PT-2214 paid</span>
+          <span className="text-[10px] tabular-nums text-bone-200/60">$4,820.00</span>
         </motion.div>
       </Plane>
     </SceneStage>

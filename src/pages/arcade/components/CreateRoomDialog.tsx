@@ -12,7 +12,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { GAME_META } from '@/lib/arcade/gameMeta';
 import { cn } from '@/lib/utils';
 
-const GAME_ORDER: GameType[] = ['word_bomb', 'snake_royale', 'doodle_relay', 'chess'];
+const GAME_ORDER: GameType[] = ['word_bomb', 'doodle_relay', 'chess'];
 
 // Mirrors the 6 presets resolved server-side in chess.types.ts — the standard Lichess/
 // Chess.com time-control brackets. Only the id crosses the wire (in `settings.timeControl`);

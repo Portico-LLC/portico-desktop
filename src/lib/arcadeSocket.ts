@@ -11,7 +11,7 @@ export function connectArcadeSocket(token: string): Socket {
     reconnection: true,
     // Skip the HTTP long-polling handshake and connect straight over a WebSocket — polling
     // adds a real round-trip of latency to the initial connect (and to every message until
-    // the upgrade completes), which matters for Snake Royale's tick-driven gameplay.
+    // the upgrade completes), which matters for gameplay that streams frequent updates.
     transports: ['websocket'],
   });
   return socket;

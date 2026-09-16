@@ -1,4 +1,4 @@
-import { Bomb, Crown, Palette, Swords } from 'lucide-react';
+import { Bomb, Crown, Palette, HelpCircle } from 'lucide-react';
 import type { GameType } from '@/lib/types';
 
 export interface GameMeta {
@@ -9,21 +9,22 @@ export interface GameMeta {
   available: boolean;
 }
 
-/** Snake Royale and Doodle Relay are modeled end-to-end (schema, lobby, protocol) but their
- *  engines ship in later phases — `available: false` keeps them visible-but-disabled in the
- *  game picker rather than hidden, so the room a host is about to get isn't a mystery. */
+/** Fallback for a `gameType` no longer in `GameType` — e.g. a historical match/room row
+ *  for a game that's since been removed from the lineup. Keeps history/results/room views
+ *  from throwing on `GAME_META[gameType]` instead of assuming every stored value is current. */
+export const UNKNOWN_GAME_META: GameMeta = {
+  label: 'Unavailable game',
+  tagline: 'This game is no longer available.',
+  icon: <HelpCircle size={20} />,
+  minPlayers: 2,
+  available: false,
+};
+
 export const GAME_META: Record<GameType, GameMeta> = {
   word_bomb: {
     label: 'Word Bomb',
     tagline: 'Type a word before the fuse burns out.',
     icon: <Bomb size={20} />,
-    minPlayers: 2,
-    available: true,
-  },
-  snake_royale: {
-    label: 'Snake Royale',
-    tagline: 'Last snake alive wins as the arena shrinks.',
-    icon: <Swords size={20} />,
     minPlayers: 2,
     available: true,
   },

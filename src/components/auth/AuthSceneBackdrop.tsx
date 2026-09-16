@@ -1,14 +1,7 @@
-import { lazy, Suspense, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MotionValue } from 'framer-motion';
-import { useMotionValueEvent } from 'framer-motion';
+import { motion, useTransform } from 'framer-motion';
 import { ArchMotif } from '@/components/brand/ArchMotif';
-import { ThreeErrorBoundary } from '@/components/three/ThreeErrorBoundary';
-import { useWebglSupported } from '@/lib/three/useWebglSupported';
-import type { TiltRef } from '@/components/three/PorticoArchModel';
-
-const PorticoArchCanvas = lazy(() =>
-  import('@/components/three/PorticoArchCanvas').then((m) => ({ default: m.PorticoArchCanvas }))
-);
 
 interface AuthSceneBackdropProps {
   x: MotionValue<number>;
@@ -17,33 +10,55 @@ interface AuthSceneBackdropProps {
   play: boolean;
 }
 
+const VIDEO_SRC = '/videos/hero-arch-loop.mp4';
+
 /**
- * Replaces the flat self-drawing `ArchMotif` with a real 3D doorway that (a)
- * has idle motion so it's alive even with zero pointer input, and (b) turns
- * far more convincingly with the cursor than the old 3px text nudge. Falls
- * back to the exact original `ArchMotif` whenever WebGL is unavailable, still
- * loading, or the 3D tree throws.
+ * The auth panel's real doorway footage, replacing the old procedural 3D
+ * arch. Fills the panel edge-to-edge and tilts gently with the cursor via a
+ * CSS 3D transform fed by the same spring-smoothed x/y pointer values
+ * `ArchMotif` uses, so the "turns with the cursor" feel survives the swap
+ * without three.js. The panel is nearly square while the source footage is
+ * 16:9, so a plain `object-cover` crops in tight enough to slice the video's
+ * own on-screen text at both edges — `object-contain` plus a modest scale
+ * keeps the full width in frame instead, with the panel's own dark
+ * background reading as a natural continuation of the letterboxed edges.
+ * `play`/`reduce` gate playback; a dark wash keeps the logo/content/footer
+ * legible on top. Falls back to `ArchMotif` if the file fails to load.
  */
 export function AuthSceneBackdrop({ x, y, reduce, play }: AuthSceneBackdropProps) {
-  const webglSupported = useWebglSupported();
-  const tiltRef: TiltRef = useRef({ x: 0, y: 0 });
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [failed, setFailed] = useState(false);
 
-  useMotionValueEvent(x, 'change', (v) => {
-    tiltRef.current.x = v;
-  });
-  useMotionValueEvent(y, 'change', (v) => {
-    tiltRef.current.y = v;
-  });
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (play && !reduce) {
+      void video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [play, reduce]);
 
-  const fallback = <ArchMotif x={x} y={y} reduce={reduce} />;
+  const rotateY = useTransform(x, (v) => v * 6);
+  const rotateX = useTransform(y, (v) => v * -6);
 
-  if (!webglSupported) return fallback;
+  if (failed) return <ArchMotif x={x} y={y} reduce={reduce} />;
 
   return (
-    <Suspense fallback={fallback}>
-      <ThreeErrorBoundary fallback={fallback}>
-        <PorticoArchCanvas tiltRef={tiltRef} idle reduced={reduce} play={play} className="absolute inset-0" />
-      </ThreeErrorBoundary>
-    </Suspense>
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" style={{ perspective: 1200 }}>
+      <motion.video
+        ref={videoRef}
+        className="h-full w-full object-contain"
+        style={reduce ? undefined : { rotateX, rotateY, scale: 1.3 }}
+        src={VIDEO_SRC}
+        muted
+        loop
+        playsInline
+        preload="auto"
+        disablePictureInPicture
+        onError={() => setFailed(true)}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-ink-950/70 via-ink-950/45 to-ink-950/70" />
+    </div>
   );
 }

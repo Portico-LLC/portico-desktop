@@ -9,14 +9,13 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Badge } from '@/components/ui/Badge';
 import { seatColor } from '@/lib/arcade/playerColors';
-import { GAME_META } from '@/lib/arcade/gameMeta';
+import { GAME_META, UNKNOWN_GAME_META } from '@/lib/arcade/gameMeta';
 import { cn } from '@/lib/utils';
 import type { GameMatchHistoryEntry, GameType } from '@/lib/types';
 
 const FILTERS: { id: GameType | 'all'; label: string }[] = [
   { id: 'all', label: 'All games' },
   { id: 'word_bomb', label: GAME_META.word_bomb.label },
-  { id: 'snake_royale', label: GAME_META.snake_royale.label },
   { id: 'doodle_relay', label: GAME_META.doodle_relay.label },
 ];
 
@@ -67,7 +66,7 @@ export function ArcadeHistory() {
       ) : (
         <div className="space-y-3">
           {matches.map((match) => {
-            const meta = GAME_META[match.gameType];
+            const meta = GAME_META[match.gameType] ?? UNKNOWN_GAME_META;
             return (
               <Card key={match.id} className="flex items-center gap-4 p-4">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-pine-100 text-pine-700">

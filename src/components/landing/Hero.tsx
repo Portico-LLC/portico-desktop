@@ -7,9 +7,6 @@ import { HeroSceneBackdrop } from '@/components/landing/HeroSceneBackdrop';
 import { DashboardScene } from '@/components/landing/scenes/DashboardScene';
 import { useSceneVisibility } from '@/lib/motion/useSceneVisibility';
 
-/** The headline, split so each line can arrive on its own depth beat. */
-const HEADLINE = ['The front door between', 'studio and client.'];
-
 export function Hero() {
   const reduce = !!useReducedMotion();
   const heroRef = useRef<HTMLElement>(null);
@@ -29,47 +26,12 @@ export function Hero() {
       <HeroSceneBackdrop reduce={reduce} play={play} scrollYProgress={scrollYProgress} />
 
       <div className="relative z-10 mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-12 px-6 pb-16 pt-24 lg:grid-cols-[minmax(0,46ch)_1fr] lg:gap-6">
-        <div>
-          <motion.span
-            initial={reduce ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-            className="inline-flex items-center gap-2 rounded-full border border-pine-800 bg-pine-950 px-2.5 py-1 text-[11px] font-medium text-pine-200"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-moss-400" />
-            Now in private beta
-          </motion.span>
-
-          <h1 className="mt-5 max-w-[16ch] font-display font-medium leading-[1.08] tracking-[-0.02em] text-bone-50 text-[clamp(38px,5vw,60px)]">
-            {HEADLINE.map((line, i) => (
-              <span key={line} className="block overflow-hidden">
-                <motion.span
-                  className="block"
-                  initial={reduce ? false : { opacity: 0, y: '100%' }}
-                  animate={{ opacity: 1, y: '0%' }}
-                  transition={{ duration: 0.6, ease: [0.2, 0, 0, 1], delay: 0.1 + i * 0.09 }}
-                >
-                  {line}
-                </motion.span>
-              </span>
-            ))}
-          </h1>
-
-          <motion.p
-            initial={reduce ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.2, 0, 0, 1], delay: 0.32 }}
-            className="mt-5 max-w-md text-base leading-relaxed text-ink-300"
-          >
-            Projects, tasks, invoices, chat, and secrets. One calm workspace your clients can
-            actually use.
-          </motion.p>
-
+        <div className="self-end">
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.2, 0, 0, 1], delay: 0.42 }}
-            className="mt-8 flex flex-col gap-3 sm:flex-row"
+            transition={{ duration: 0.5, ease: [0.2, 0, 0, 1], delay: 0.15 }}
+            className="flex flex-col gap-3 sm:flex-row"
           >
             <Link to="/signup" className="group w-full sm:w-auto">
               <Button variant="primary" size="lg" className="w-full sm:w-auto">
@@ -84,7 +46,7 @@ export function Hero() {
               <Button
                 variant="outline"
                 size="lg"
-                className="w-full border-ink-700 text-bone-50 hover:border-ink-600 hover:bg-ink-900 sm:w-auto"
+                className="w-full border-ink-700 bg-ink-950/60 text-bone-50 backdrop-blur-sm hover:border-ink-600 hover:bg-ink-900 sm:w-auto"
               >
                 Sign in
               </Button>
@@ -100,7 +62,7 @@ export function Hero() {
           initial={reduce ? false : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.2, 0, 0, 1], delay: 0.2 }}
-          className="mx-auto w-full max-w-lg lg:max-w-none lg:translate-x-[6%]"
+          className="mx-auto w-full max-w-lg lg:max-w-none lg:translate-x-[20%]"
         >
           <DashboardScene play={play} />
         </motion.div>

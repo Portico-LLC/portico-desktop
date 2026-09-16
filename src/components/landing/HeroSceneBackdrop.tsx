@@ -1,15 +1,9 @@
-import { lazy, Suspense, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { MotionValue } from 'framer-motion';
-import { useMotionValueEvent } from 'framer-motion';
+import { motion, useTransform } from 'framer-motion';
 import { HeroArch } from '@/components/brand/HeroArch';
 import { HeroDepthWash } from '@/components/brand/HeroDepthWash';
-import { ThreeErrorBoundary } from '@/components/three/ThreeErrorBoundary';
-import { useWebglSupported } from '@/lib/three/useWebglSupported';
-import type { ScrollRef } from '@/components/three/PorticoArchModel';
-
-const PorticoArchCanvas = lazy(() =>
-  import('@/components/three/PorticoArchCanvas').then((m) => ({ default: m.PorticoArchCanvas }))
-);
 
 interface HeroSceneBackdropProps {
   reduce: boolean;
@@ -17,49 +11,69 @@ interface HeroSceneBackdropProps {
   scrollYProgress: MotionValue<number>;
 }
 
+const VIDEO_SRC = '/videos/hero-arch-loop.mp4';
+
+// Soft oval fade so the rectangular clip reads as an atmospheric wash instead
+// of a hard-edged box — no visible seam where the footage meets `HeroDepthWash`.
+const EDGE_FADE_MASK = 'radial-gradient(85% 92% at 38% 62%, black 45%, transparent 96%)';
+const edgeFadeStyle: CSSProperties = {
+  maskImage: EDGE_FADE_MASK,
+  WebkitMaskImage: EDGE_FADE_MASK,
+};
+
 /**
- * Replaces the flat `HeroArch` line art with the same real 3D doorway used on
- * the auth panel, so scrolling actually dollies it back in 3D instead of
- * faking depth with a CSS translateZ on a flat layer. Left-biased in
- * composition (matches `HeroArch`'s own `-left-24 ... sm:left-0` framing) so
- * it stays behind the headline column and never competes with the
- * `DashboardScene` diorama on the right.
+ * The hero's real doorway footage — an edge-faded, full-bleed video loop
+ * behind the headline column, replacing the old procedural 3D arch. Scroll
+ * still dollies the piece back (scale + fade) the way the 3D camera's Z-dolly
+ * did; `play`/`reduce` gate actual playback so it never burns frames
+ * off-screen, in a hidden tab, or under reduced motion. Falls back to the
+ * flat `HeroArch` line art if the file fails to load.
  */
 export function HeroSceneBackdrop({ reduce, play, scrollYProgress }: HeroSceneBackdropProps) {
-  const webglSupported = useWebglSupported();
-  const scrollRef: ScrollRef = useRef(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [failed, setFailed] = useState(false);
 
-  useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    scrollRef.current = v;
-  });
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (play && !reduce) {
+      void video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [play, reduce]);
 
-  const fallback = <HeroArch reduce={reduce} />;
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.92]);
+  const opacity = useTransform(scrollYProgress, [0, 0.85], [1, 0]);
+
+  if (failed) {
+    return (
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <HeroArch reduce={reduce} />
+      </div>
+    );
+  }
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      {webglSupported ? (
-        <>
-          {/* `fallback` (HeroArch) carries its own copy of this same wash, so
-              this only double-renders it briefly while the 3D chunk loads —
-              invisible in practice since both washes are identical/additive
-              at low opacity. */}
-          <HeroDepthWash />
-          <Suspense fallback={fallback}>
-            <ThreeErrorBoundary fallback={fallback}>
-              <PorticoArchCanvas
-                scrollRef={scrollRef}
-                idle
-                reduced={reduce}
-                play={play}
-                dim={0.9}
-                className="absolute -left-16 bottom-0 h-full w-[70%] sm:left-0"
-              />
-            </ThreeErrorBoundary>
-          </Suspense>
-        </>
-      ) : (
-        fallback
-      )}
+      <HeroDepthWash />
+      <motion.div
+        style={reduce ? undefined : { scale, opacity }}
+        className="absolute -left-16 bottom-0 h-full w-[70%] sm:left-0"
+      >
+        <video
+          ref={videoRef}
+          className="h-full w-full object-cover"
+          style={edgeFadeStyle}
+          src={VIDEO_SRC}
+          muted
+          loop
+          playsInline
+          preload="auto"
+          disablePictureInPicture
+          onError={() => setFailed(true)}
+        />
+      </motion.div>
     </div>
   );
 }
