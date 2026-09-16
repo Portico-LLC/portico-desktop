@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { X, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { NODE_STYLES } from './automationNodeStyles';
+import { ScheduleFields } from './ScheduleFields';
 import type {
   WorkflowNodeConfig,
   WorkflowTriggerConfig,
@@ -23,13 +24,6 @@ interface RefOption {
   id: string;
   name: string;
 }
-
-const CRON_PRESETS: { label: string; value: string }[] = [
-  { label: 'Every hour', value: '0 * * * *' },
-  { label: 'Daily 9am', value: '0 9 * * *' },
-  { label: 'Every Monday 9am', value: '0 9 * * 1' },
-  { label: 'Every 15 min', value: '*/15 * * * *' },
-];
 
 const EVENTS_BY_ENTITY: Record<AutomationEntityType, AutomationEventName[]> = {
   task: ['task.created', 'task.updated'],
@@ -321,21 +315,10 @@ export function NodeConfigPanel({ node, onClose }: { node: WorkflowNodeConfig; o
 
         {node.type === 'trigger.cron' && (
           <>
-            <FieldGroup>
-              <Label>Cron expression</Label>
-              <Input
-                value={String(config.cronExpression ?? '')}
-                onChange={(e) => setConfig({ cronExpression: e.target.value })}
-                placeholder="0 9 * * *"
-              />
-            </FieldGroup>
-            <div className="flex flex-wrap gap-1.5">
-              {CRON_PRESETS.map((p) => (
-                <Button key={p.value} type="button" variant="secondary" size="sm" onClick={() => setConfig({ cronExpression: p.value })}>
-                  {p.label}
-                </Button>
-              ))}
-            </div>
+            <ScheduleFields
+              cronExpression={String(config.cronExpression ?? '')}
+              onChange={(cronExpression) => setConfig({ cronExpression })}
+            />
             <FieldGroup>
               <Label>Timezone (optional)</Label>
               <Input value={String(config.timezone ?? '')} onChange={(e) => setConfig({ timezone: e.target.value })} placeholder="America/New_York" />
